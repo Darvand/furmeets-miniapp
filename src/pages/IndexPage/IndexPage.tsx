@@ -22,8 +22,8 @@ export const IndexPage: FC = () => {
 
   const telegramUserId = initDataState?.user?.id || 1;
   const { isLoading: isGettingUser, isError, error, refetch: refetchUser } = useGetUserByIdQuery(telegramUserId);
-  const { isLoading: isGettingRequester, error: requesterError, refetch: refetchRequester } = useGetUserByIdQuery(123456789);
-  const [createUser, { isLoading: isCreatingUser, error: createUserError }] = useCreateUserMutation();
+  const { isLoading: isGettingRequester, refetch: refetchRequester } = useGetUserByIdQuery(123456789);
+  const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
 
   const isLoading = useMemo(() => {
     return isGettingUser || isCreatingUser || isRequestChatsLoading || isGettingRequester;
@@ -58,16 +58,6 @@ export const IndexPage: FC = () => {
     navigate('/init-data');
   }
 
-  if (error || createUserError || requesterError) {
-    const err = error || createUserError || requesterError;
-    return (
-      <Page back={false}>
-        <div>Error loading data. Please try again later.</div>
-        <div>{JSON.stringify(err)}</div>
-      </Page>
-    );
-  }
-
   if (!user) {
     return (
       <Page back={false}>
@@ -81,7 +71,7 @@ export const IndexPage: FC = () => {
       <Cell
         Component="label"
         after={<Switch checked={isRequester} onClick={() => setIsRequester(!isRequester)} />}
-        description="Simula como si hicieras la peticion o fueras el solicitante"
+        description="Simula ser el solicitante o tu mismo usuario"
       >
         {isRequester ? 'Simulando' : user.username}
       </Cell>
