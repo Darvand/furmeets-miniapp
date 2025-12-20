@@ -2,6 +2,7 @@ import { User } from "@/models/user.model";
 import { setUser } from "@/state/user.slice";
 import { fetchBaseQuery } from "@reduxjs/toolkit/query";
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { type User as TelegramUser } from '@telegram-apps/sdk-react';
 
 export const userApi = createApi({
     reducerPath: 'userApi',
@@ -12,13 +13,23 @@ export const userApi = createApi({
         }
     }),
     endpoints: (builder) => ({
-        getUserById: builder.query<User, number>({
-            query: (telegramId: number) => `/${telegramId}`,
-            async onQueryStarted(_id, { dispatch, queryFulfilled }) {
+        getUserByTelegramUser: builder.query<User, TelegramUser>({
+            query: (telegramUser: TelegramUser) => `/${telegramUser.id}`,
+            async onQueryStarted(telegramUser, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data));
-                } catch (error) {
+                } catch (error: any) {
+                    if (error.status === 404) {
+                        // not found, create it with createUser mutatin
+                        const newUser: Partial<User> = {
+                            telegramId: telegramUser.id,
+                            username: telegramUser?.username || 'Unknown',
+                            name: `${telegramUser?.first_name || ''} ${telegramUser?.last_name || ''}`.trim(),
+                            avatarUrl: telegramUser?.photo_url || '',
+                        };
+                        dispatch(userApi.endpoints.createUser.initiate(newUser));
+                    }
                     console.error('Error fetching user by ID:', error);
                 }
             },
@@ -42,6 +53,6 @@ export const userApi = createApi({
 });
 
 export const {
-    useGetUserByIdQuery,
+    useLazyGetUserByTelegramUserQuery,
     useCreateUserMutation,
 } = userApi;

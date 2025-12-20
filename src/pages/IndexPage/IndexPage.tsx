@@ -2,7 +2,7 @@ import { Avatar, Button, Cell, List, Spinner, Switch } from '@telegram-apps/tele
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
-import { useCreateUserMutation, useGetUserByIdQuery } from '@/services/user.service';
+import { useLazyGetUserByTelegramUserQuery } from '@/services/user.service';
 import { useGetAllRequestChatsQuery } from '@/services/request-chat.service';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/state/store';
@@ -21,35 +21,19 @@ export const IndexPage: FC = () => {
   const user = useSelector((state: RootState) => state.user);
 
   const telegramUserId = initDataState?.user?.id || 1;
-  const { isLoading: isGettingUser, isError, error, refetch: refetchUser } = useGetUserByIdQuery(telegramUserId);
-  const { isLoading: isGettingRequester, refetch: refetchRequester } = useGetUserByIdQuery(123456789);
-  const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
+  const [getUserByTelegramUser, { isLoading: isGettingUser }] = useLazyGetUserByTelegramUserQuery();
 
   const isLoading = useMemo(() => {
-    return isGettingUser || isCreatingUser || isRequestChatsLoading || isGettingRequester;
-  }, [isGettingUser, isCreatingUser, isRequestChatsLoading, isGettingRequester]);
-
-  useEffect(() => {
-    // If user not found (404), create the user
-    if (isError && error && 'status' in error && error.status === 404) {
-      const newUser = {
-        telegramId: telegramUserId,
-        username: initDataState?.user?.username || 'Unknown',
-        name: `${initDataState?.user?.first_name || ''} ${initDataState?.user?.last_name || ''}`.trim(),
-        avatarUrl: initDataState?.user?.photo_url || '',
-      };
-      createUser(newUser);
-    }
-  }, [isError, error, createUser, telegramUserId, initDataState]);
+    return isGettingUser || isRequestChatsLoading;
+  }, [isGettingUser, isRequestChatsLoading]);
 
   useEffect(() => {
     if (isRequester) {
-      refetchRequester();
+      getUserByTelegramUser({ id: 123456789 } as any);
     } else {
-      refetchUser();
+      getUserByTelegramUser(initDataState!.user!);
     }
-  }, [isRequester, refetchRequester, refetchUser]);
-
+  }, [isRequester, telegramUserId, getUserByTelegramUser]);
   const handleNavigateToChat = (requestChatId: string) => {
     navigate(`/request-chat/${requestChatId}`);
   };
