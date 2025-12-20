@@ -65,7 +65,15 @@ if (import.meta.env.DEV) {
           ['auth_date', (new Date().getTime() / 1000 | 0).toString()],
           ['hash', 'some-hash'],
           ['signature', 'some-signature'],
-          ['user', JSON.stringify({ id: 1, first_name: 'Vladislav' })],
+          ['user', JSON.stringify(
+            {
+              id: 1070225388,
+              first_name: 'Darvand',
+              last_name: 'Frovonwill',
+              username: 'DarvandFrovonwill',
+              photo_url: 'https://t.me/i/userpic/320/Cb43KYfDbIVUKAFG45jNPRSeoZ_OUWv1IBTpgjA3b8I.svg',
+            }
+          )],
         ]).toString()],
         ['tgWebAppVersion', '8.4'],
         ['tgWebAppPlatform', 'tdesktop'],

@@ -1,4 +1,4 @@
-import { Cell, List, Avatar, IconButton } from '@telegram-apps/telegram-ui';
+import { Cell, List, Avatar, IconButton, Spinner } from '@telegram-apps/telegram-ui';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
 import { Icon16Chevron, Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
@@ -76,14 +76,24 @@ export const RequestChatPage: FC = () => {
     }, [requestChat?.messages]);
 
     if (isLoading || !requestChat) {
-        return <Page back={false}>Loading...</Page>;
+        return <Page back={true}>
+            <div style={{
+                flex: 1,
+                height: '100dvh',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+            }}>
+                <Spinner size='m' />
+            </div>
+        </Page>;
     }
     if (isError) {
-        return <Page back={false}>Error loading chat. <button onClick={() => refetch()}>Retry</button></Page>;
+        return <Page back={true}>Error loading chat. <button onClick={() => refetch()}>Retry</button></Page>;
     }
 
     return (
-        <Page back={false}>
+        <Page back={true}>
             <div
                 style={{
                     height: '100vh',

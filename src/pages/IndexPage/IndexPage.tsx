@@ -1,4 +1,4 @@
-import { Avatar, Button, Cell, List, Spinner, Switch } from '@telegram-apps/telegram-ui';
+import { Avatar, Button, Cell, List, Section, Spinner, Switch } from '@telegram-apps/telegram-ui';
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
@@ -38,30 +38,36 @@ export const IndexPage: FC = () => {
     navigate(`/request-chat/${requestChatId}`);
   };
 
-  const handleNavigateToUserProfile = () => {
-    navigate('/init-data');
-  }
+  // const handleNavigateToUserProfile = () => {
+  //   navigate('/init-data');
+  // }
 
-  if (!user) {
+  if (!user || isLoading) {
     return (
       <Page back={false}>
-        <Spinner size='m' />
+        <div style={{
+          flex: 1,
+          height: '100dvh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spinner size='m' />
+        </div>
       </Page>
     );
   }
 
   return (
     <Page back={false}>
-      <Cell
-        Component="label"
-        after={<Switch checked={isRequester} onClick={() => setIsRequester(!isRequester)} />}
-        description="Simula ser el solicitante o tu mismo usuario"
-      >
-        {isRequester ? 'Simulando' : user.username}
-      </Cell>
-      {(isLoading && user) ? (
-        <Spinner size='m' />
-      ) : (
+      <Section>
+        <Cell
+          Component="label"
+          after={<Switch checked={isRequester} onClick={() => setIsRequester(!isRequester)} />}
+          description="Simula ser el solicitante o tu mismo usuario"
+        >
+          {isRequester ? 'Simulando' : user.username}
+        </Cell>
         <List>
           {requestChats.map((chat) => (
             <Cell
@@ -70,15 +76,15 @@ export const IndexPage: FC = () => {
                 size={40}
                 src={chat.requester.avatarUrl}
               />}
-              subtitle={chat.requester.name}
+              subtitle={chat.requester.username}
               onClick={() => handleNavigateToChat(chat.uuid)}
             >
-              {chat.requester.name}'s Chat
+              {chat.requester.name}
             </Cell>
           ))}
         </List>
-      )}
-      <Button onClick={handleNavigateToUserProfile}>Go to User Profile</Button>
+      </Section>
+      {/* <Button onClick={handleNavigateToUserProfile}>Go to User Profile</Button> */}
     </Page>
   );
 };

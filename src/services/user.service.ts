@@ -20,7 +20,8 @@ export const userApi = createApi({
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data));
                 } catch (error: any) {
-                    if (error.status === 404) {
+                    console.log('Error object in onQueryStarted:', error);
+                    if (error?.error.status === 404) {
                         // not found, create it with createUser mutatin
                         const newUser: Partial<User> = {
                             telegramId: telegramUser.id,
@@ -29,6 +30,8 @@ export const userApi = createApi({
                             avatarUrl: telegramUser?.photo_url || '',
                         };
                         dispatch(userApi.endpoints.createUser.initiate(newUser));
+                        console.log('User not found, creating new user:', newUser);
+                        return;
                     }
                     console.error('Error fetching user by ID:', error);
                 }
