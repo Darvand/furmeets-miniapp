@@ -7,6 +7,9 @@ export const userApi = createApi({
     reducerPath: 'userApi',
     baseQuery: fetchBaseQuery({
         baseUrl: `${import.meta.env.VITE_API_URL}/users`,
+        headers: {
+            "ngrok-skip-browser-warning": "true",
+        }
     }),
     endpoints: (builder) => ({
         getUserById: builder.query<User, number>({
