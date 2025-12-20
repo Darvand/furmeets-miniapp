@@ -9,8 +9,8 @@ export const userApi = createApi({
         baseUrl: `${import.meta.env.VITE_API_URL}/users`,
     }),
     endpoints: (builder) => ({
-        getUserById: builder.query<User, string>({
-            query: (id: string) => `/${id}`,
+        getUserById: builder.query<User, number>({
+            query: (telegramId: number) => `/${telegramId}`,
             async onQueryStarted(_id, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -19,10 +19,26 @@ export const userApi = createApi({
                     console.error('Error fetching user by ID:', error);
                 }
             },
-        })
+        }),
+        createUser: builder.mutation<User, Partial<User>>({
+            query: (newUser) => ({
+                url: `/`,
+                method: 'POST',
+                body: newUser,
+            }),
+            async onQueryStarted(_newUser, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(setUser(data));
+                } catch (error) {
+                    console.error('Error creating user:', error);
+                }
+            },
+        }),
     })
 });
 
 export const {
     useGetUserByIdQuery,
+    useCreateUserMutation,
 } = userApi;

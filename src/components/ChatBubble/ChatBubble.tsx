@@ -10,7 +10,7 @@ interface ChatBubbleProps {
     isOwn?: boolean;
 }
 
-export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarUrl }) => {
+export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarUrl, isOwn }) => {
     return (
         <div
             style={{
@@ -25,7 +25,7 @@ export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avata
             />
             <div
                 style={{
-                    backgroundColor: themeParams.secondaryBackgroundColor(),
+                    backgroundColor: isOwn ? themeParams.buttonColor() : themeParams.secondaryBackgroundColor(),
                     borderRadius: '12px',
                     padding: '8px 12px',
                     marginTop: '4px',

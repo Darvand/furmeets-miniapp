@@ -1,41 +1,100 @@
-import { Button, Cell, Switch } from '@telegram-apps/telegram-ui';
-import { useState, type FC } from 'react';
+import { Avatar, Button, Cell, List, Spinner, Switch } from '@telegram-apps/telegram-ui';
+import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
-import { useGetUserByIdQuery } from '@/services/user.service';
+import { useCreateUserMutation, useGetUserByIdQuery } from '@/services/user.service';
+import { useGetAllRequestChatsQuery } from '@/services/request-chat.service';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/state/store';
+import {
+  initDataRaw as _initDataRaw,
+  initDataState as _initDataState,
+  useSignal,
+} from '@telegram-apps/sdk-react';
 
 export const IndexPage: FC = () => {
   const navigate = useNavigate();
-  const [isRequester, setIsRequester] = useState(true);
+  const initDataState = useSignal(_initDataState);
+  const [isRequester, setIsRequester] = useState(false);
+  const { isLoading: isRequestChatsLoading } = useGetAllRequestChatsQuery();
+  const requestChats = useSelector((state: RootState) => state.hub.requestChats);
+  const user = useSelector((state: RootState) => state.user);
 
-  // Switch between user IDs based on isRequester
-  const userId = isRequester
-    ? '69c36014-011e-4847-b964-0a44c5e0b564' // requester
-    : 'fcb97f14-a258-48cd-aba9-f2ca500d66da';
+  const telegramUserId = initDataState?.user?.id || 1;
+  const { isLoading: isGettingUser, isError, error, refetch: refetchUser } = useGetUserByIdQuery(telegramUserId);
+  const { isLoading: isGettingRequester, refetch: refetchRequester } = useGetUserByIdQuery(123456789);
+  const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
 
-  const { isLoading } = useGetUserByIdQuery(userId);
+  const isLoading = useMemo(() => {
+    return isGettingUser || isCreatingUser || isRequestChatsLoading || isGettingRequester;
+  }, [isGettingUser, isCreatingUser, isRequestChatsLoading, isGettingRequester]);
 
-  const handleNavigateToChat = () => {
-    const exampleUuid = 'ea1bdd60-39e5-438a-815b-f5f7cbe289d3';
-    navigate(`/request-chat/${exampleUuid}`);
+  useEffect(() => {
+    // If user not found (404), create the user
+    if (isError && error && 'status' in error && error.status === 404) {
+      const newUser = {
+        telegramId: telegramUserId,
+        username: initDataState?.user?.username || 'Unknown',
+        name: `${initDataState?.user?.first_name || ''} ${initDataState?.user?.last_name || ''}`.trim(),
+        avatarUrl: initDataState?.user?.photo_url || '',
+      };
+      createUser(newUser);
+    }
+  }, [isError, error, createUser, telegramUserId, initDataState]);
+
+  useEffect(() => {
+    if (isRequester) {
+      refetchRequester();
+    } else {
+      refetchUser();
+    }
+  }, [isRequester, refetchRequester, refetchUser]);
+
+  const handleNavigateToChat = (requestChatId: string) => {
+    navigate(`/request-chat/${requestChatId}`);
   };
+
+  const handleNavigateToUserProfile = () => {
+    navigate('/init-data');
+  }
+
+  if (!user) {
+    return (
+      <Page back={false}>
+        <Spinner size='m' />
+      </Page>
+    );
+  }
 
   return (
     <Page back={false}>
       <Cell
         Component="label"
-        after={<Switch defaultChecked onClick={() => setIsRequester(!isRequester)} />}
-        description="Switch user"
+        after={<Switch checked={isRequester} onClick={() => setIsRequester(!isRequester)} />}
+        description="Simula como si hicieras la peticion o fueras el solicitante"
       >
-        Requester
+        {isRequester ? 'Simulando' : user.username}
       </Cell>
-      {isLoading ? (
-        <p>Loading user data...</p>
+      {(isLoading && user) ? (
+        <Spinner size='m' />
       ) : (
-        <Button onClick={handleNavigateToChat}>
-          Go to Request Chat
-        </Button>
+        <List>
+          {requestChats.map((chat) => (
+            <Cell
+              key={chat.uuid}
+              before={<Avatar
+                size={40}
+                src={chat.requester.avatarUrl}
+              />}
+              subtitle={chat.requester.name}
+              onClick={() => handleNavigateToChat(chat.uuid)}
+            >
+              {chat.requester.name}'s Chat
+            </Cell>
+          ))}
+        </List>
       )}
+      <Button onClick={handleNavigateToUserProfile}>Go to User Profile</Button>
     </Page>
   );
 };

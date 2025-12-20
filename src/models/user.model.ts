@@ -3,5 +3,6 @@ export interface User {
     username: string;
     avatarUrl: string;
     name: string;
+    telegramId: number;
     createdAt: Date;
 }

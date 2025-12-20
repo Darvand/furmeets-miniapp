@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { requestChatReducer } from "./request-chat.slice";
 import { userReducer } from "./user.slice";
 import { userApi } from "@/services/user.service";
+import { hubReducer } from "./hub.slice";
 
 
 export const store = configureStore({
@@ -11,6 +12,7 @@ export const store = configureStore({
         [userApi.reducerPath]: userApi.reducer,
         requestChat: requestChatReducer,
         user: userReducer,
+        hub: hubReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(requestChatApi.middleware).concat(userApi.middleware),

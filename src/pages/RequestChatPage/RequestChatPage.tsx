@@ -13,7 +13,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addMessage } from '@/state/request-chat.slice';
 import { RootState } from '@/state/store';
 
-
 export const RequestChatPage: FC = () => {
     const params = useParams<{ uuid: string }>();
     const {
@@ -38,7 +37,7 @@ export const RequestChatPage: FC = () => {
     };
 
     const authenticate = useCallback(() => {
-        const socket = io('http://localhost:3000');
+        const socket = io(`${import.meta.env.VITE_API_URL}`);
         setSocket(socket);
 
         socket.on('request-chat', (message: RequestChatMessage) => {
@@ -151,6 +150,7 @@ export const RequestChatPage: FC = () => {
                                     message={message.content}
                                     avatarUrl={message.user.avatarUrl}
                                     username={message.user.username}
+                                    isOwn={message.user.uuid === user?.uuid}
                                     time='10:00 AM'
                                 />
                             )
