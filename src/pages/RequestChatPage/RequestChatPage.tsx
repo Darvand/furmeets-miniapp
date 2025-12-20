@@ -96,7 +96,7 @@ export const RequestChatPage: FC = () => {
         <Page back={true}>
             <div
                 style={{
-                    height: '100vh',
+                    height: '100dvh',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',

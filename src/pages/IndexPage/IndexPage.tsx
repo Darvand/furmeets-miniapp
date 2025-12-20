@@ -1,4 +1,4 @@
-import { Avatar, Button, Cell, List, Section, Spinner, Switch } from '@telegram-apps/telegram-ui';
+import { Avatar, Cell, List, Section, Spinner, Switch } from '@telegram-apps/telegram-ui';
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
