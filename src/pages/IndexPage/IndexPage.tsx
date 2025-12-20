@@ -59,10 +59,11 @@ export const IndexPage: FC = () => {
   }
 
   if (error || createUserError || requesterError) {
+    const err = error || createUserError || requesterError;
     return (
       <Page back={false}>
         <div>Error loading data. Please try again later.</div>
-        <div>{error?.toString() || createUserError?.toString() || requesterError?.toString()}</div>
+        <div>{JSON.stringify(err)}</div>
       </Page>
     );
   }
