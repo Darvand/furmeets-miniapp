@@ -22,8 +22,8 @@ export const IndexPage: FC = () => {
 
   const telegramUserId = initDataState?.user?.id || 1;
   const { isLoading: isGettingUser, isError, error, refetch: refetchUser } = useGetUserByIdQuery(telegramUserId);
-  const { isLoading: isGettingRequester, refetch: refetchRequester } = useGetUserByIdQuery(123456789);
-  const [createUser, { isLoading: isCreatingUser }] = useCreateUserMutation();
+  const { isLoading: isGettingRequester, error: requesterError, refetch: refetchRequester } = useGetUserByIdQuery(123456789);
+  const [createUser, { isLoading: isCreatingUser, error: createUserError }] = useCreateUserMutation();
 
   const isLoading = useMemo(() => {
     return isGettingUser || isCreatingUser || isRequestChatsLoading || isGettingRequester;
@@ -56,6 +56,15 @@ export const IndexPage: FC = () => {
 
   const handleNavigateToUserProfile = () => {
     navigate('/init-data');
+  }
+
+  if (error || createUserError || requesterError) {
+    return (
+      <Page back={false}>
+        <div>Error loading data. Please try again later.</div>
+        <div>{error?.toString() || createUserError?.toString() || requesterError?.toString()}</div>
+      </Page>
+    );
   }
 
   if (!user) {
