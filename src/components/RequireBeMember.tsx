@@ -13,7 +13,7 @@ export const RequireBeMember: FC<PropsWithChildren> = () => {
 
     if (user && requestChats.length > 0) {
         const nonMemberRequestChat = requestChats.find(rc => rc.requester.uuid === user.uuid);
-        if (nonMemberRequestChat) {
+        if (nonMemberRequestChat && nonMemberRequestChat.state !== 'Approved') {
             return <Navigate to={`/request-chat/${nonMemberRequestChat.uuid}`} replace />
         }
     }

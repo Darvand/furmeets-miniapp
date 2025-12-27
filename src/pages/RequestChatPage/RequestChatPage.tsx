@@ -24,13 +24,14 @@ export const RequestChatPage: FC = () => {
     const dispatch = useDispatch();
     const requestChat = useSelector((state: RootState) => state.requestChat);
     const user = useSelector((state: RootState) => state.user);
-    const [vote] = useVoteMutation();
+    const [vote, { isLoading: isVoting }] = useVoteMutation();
     const [socket, setSocket] = React.useState<Socket | null>(null);
     const [messageContent, setMessageContent] = React.useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
     const handleNavigateBack = () => {
+        if (isRequesterTheViewer) return;
         navigate(-1);
     };
 
@@ -75,13 +76,13 @@ export const RequestChatPage: FC = () => {
     };
 
     const handleApprove = () => {
-        if (requestChat) {
+        if (requestChat && !isVoting) {
             vote({ id: requestChat.uuid, type: 'approve' });
         }
     }
 
     const handleReject = () => {
-        if (requestChat) {
+        if (requestChat && !isVoting) {
             vote({ id: requestChat.uuid, type: 'reject' });
         }
     }
@@ -89,6 +90,10 @@ export const RequestChatPage: FC = () => {
     const isRequesterTheViewer = useMemo(() => {
         return user?.uuid === requestChat?.requester.uuid;
     }, [user?.uuid, requestChat?.requester.uuid]);
+
+    const showVoteButtons = useMemo(() => {
+        return requestChat && !isRequesterTheViewer && requestChat.state === 'InProgress';
+    }, [requestChat, isRequesterTheViewer]);
 
     useEffect(() => {
         if (requestChat) {
@@ -114,7 +119,7 @@ export const RequestChatPage: FC = () => {
     }
 
     return (
-        <Page back={true}>
+        <Page back={!isRequesterTheViewer}>
             <div
                 style={{
                     height: '100dvh',
@@ -146,7 +151,7 @@ export const RequestChatPage: FC = () => {
                     type='section'
                     subtitle={requestChat.requester.username}
                     after={
-                        !isRequesterTheViewer && (
+                        showVoteButtons && (
                             <div
                                 style={{
                                     paddingRight: '12px'
