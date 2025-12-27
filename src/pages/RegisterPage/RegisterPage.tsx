@@ -2,7 +2,7 @@ import { Page } from "@/components/Page";
 import { RootState } from "@/state/store";
 import { themeParams } from "@telegram-apps/sdk-react";
 import { Avatar, Blockquote, Button, Caption, Divider, Input, List, Section, Title } from "@telegram-apps/telegram-ui";
-import { FC, useMemo, useState } from "react";
+import { FC, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Icon24Channel } from "tmaui/icons";
 import { LoadingPage } from "../LoadingPage";
@@ -39,9 +39,11 @@ export const RegisterPage: FC = () => {
     const requestChat = useMemo(() => {
         return requestChats.find(rc => rc.requester.uuid === user.uuid);
     }, [requestChats, user]);
-    if (requestChat) {
-        navigate(`/request-chat/${requestChat.uuid}`, { replace: true });
-    }
+    useEffect(() => {
+        if (requestChat) {
+            navigate(`/request-chat/${requestChat.uuid}`, { replace: true });
+        }
+    }, [requestChat, navigate]);
     return (
         <Page back={true}>
             <Section>
