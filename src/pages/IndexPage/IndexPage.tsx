@@ -1,4 +1,4 @@
-import { Avatar, Badge, Caption, Cell, List, Section, Switch } from '@telegram-apps/telegram-ui';
+import { Avatar, Badge, Caption, Cell, List, Section } from '@telegram-apps/telegram-ui';
 import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
@@ -20,7 +20,7 @@ import { RequestChatMessage } from '@/models/request-chat-message.model';
 export const IndexPage: FC = () => {
   const navigate = useNavigate();
   const initDataState = useSignal(_initDataState);
-  const [isRequester, setIsRequester] = useState(false);
+  const [isRequester] = useState(false);
   const { isLoading: isRequestChatsLoading, refetch } = useGetAllRequestChatsQuery();
   const requestChats = useSelector((state: RootState) => state.hub.requestChats);
   const user = useSelector((state: RootState) => state.user);
@@ -84,13 +84,13 @@ export const IndexPage: FC = () => {
   return (
     <Page back={false}>
       <Section>
-        <Cell
+        {/* <Cell
           Component="label"
           after={<Switch checked={isRequester} onClick={() => setIsRequester(!isRequester)} readOnly />}
           description="Simula ser el solicitante o tu mismo usuario"
         >
           {isRequester ? 'Simulando' : user.username}
-        </Cell>
+        </Cell> */}
         <List>
           {requestChats.map((chat) => (
             <Cell
