@@ -15,6 +15,7 @@ import { RequireBeMember } from './RequireBeMember';
 import { useLazyGetUserByTelegramUserQuery } from '@/services/user.service';
 import { useLazyGetGroupQuery, useSyncMutation } from '@/services/group.service';
 import { LoadingPage } from '@/pages/LoadingPage';
+import { useLazyGetAllRequestChatsQuery } from '@/services/request-chat.service';
 
 
 export function App() {
@@ -27,12 +28,14 @@ export function App() {
   const [sync] = useSyncMutation();
   const [getUser] = useLazyGetUserByTelegramUserQuery();
   const [getGroup] = useLazyGetGroupQuery();
+  const [getRequestChats] = useLazyGetAllRequestChatsQuery();
   useEffect(() => {
     const initState = async () => {
       if (initDataState?.user && !hasInitialized.current) {
         hasInitialized.current = true;
         try {
           await sync();
+          await getRequestChats();
           await getGroup();
           await getUser(initDataState.user);
         } catch (error) {

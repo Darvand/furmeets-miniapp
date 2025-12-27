@@ -86,6 +86,7 @@ export const requestChatApi = createApi({
 export const {
     useGetRequestChatByIdQuery,
     useGetAllRequestChatsQuery,
+    useLazyGetAllRequestChatsQuery,
     useCreateRequestChatMutation,
     useVoteMutation,
 } = requestChatApi;

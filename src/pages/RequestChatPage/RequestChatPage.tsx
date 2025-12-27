@@ -64,7 +64,7 @@ export const RequestChatPage: FC = () => {
     }, [authenticate]);
 
     const sendMessage = () => {
-        if (socket && requestChat && user) {
+        if (socket && requestChat && user && messageContent.trim() !== '') {
             socket.emit('request-chat', {
                 requestChatUUID: requestChat.uuid,
                 userUUID: user.uuid,
