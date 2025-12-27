@@ -41,7 +41,10 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          VITE_TELEGRAM_BOT_TOKEN=${{ secrets.VITE_TELEGRAM_BOT_TOKEN }} 
+          VITE_API_URL=${{ vars.VITE_API_URL }}
+          npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
