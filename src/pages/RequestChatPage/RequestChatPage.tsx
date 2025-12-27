@@ -1,17 +1,18 @@
-import { Cell, List, Avatar, IconButton, Spinner } from '@telegram-apps/telegram-ui';
+import { Cell, List, Avatar, IconButton, Spinner, Badge } from '@telegram-apps/telegram-ui';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
 import { Icon16Chevron, Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { themeParams } from '@telegram-apps/sdk-react';
 import { ChatBubble } from '@/components/ChatBubble/ChatBubble';
 import { io, Socket } from "socket.io-client";
-import { useGetRequestChatByIdQuery } from '@/services/request-chat.service';
+import { useGetRequestChatByIdQuery, useVoteMutation } from '@/services/request-chat.service';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RequestChatMessage } from '@/models/request-chat-message.model';
 import { useDispatch, useSelector } from 'react-redux';
-import { addMessage } from '@/state/request-chat.slice';
+import { addMessage, setRequestChat } from '@/state/request-chat.slice';
 import { RootState } from '@/state/store';
+import { RequestChat } from '@/models/request-chat.model';
 
 export const RequestChatPage: FC = () => {
     const params = useParams<{ uuid: string }>();
@@ -23,6 +24,7 @@ export const RequestChatPage: FC = () => {
     const dispatch = useDispatch();
     const requestChat = useSelector((state: RootState) => state.requestChat);
     const user = useSelector((state: RootState) => state.user);
+    const [vote] = useVoteMutation();
     const [socket, setSocket] = React.useState<Socket | null>(null);
     const [messageContent, setMessageContent] = React.useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -41,8 +43,11 @@ export const RequestChatPage: FC = () => {
         setSocket(socket);
 
         socket.on('request-chat', (message: RequestChatMessage) => {
-            console.log('Received message via WebSocket:', message);
             dispatch(addMessage(message));
+        })
+
+        socket.on('request-chat-update', (requestChat: RequestChat) => {
+            dispatch(setRequestChat(requestChat));
         })
 
         return socket;
@@ -68,6 +73,22 @@ export const RequestChatPage: FC = () => {
             scrollToBottom();
         }
     };
+
+    const handleApprove = () => {
+        if (requestChat) {
+            vote({ id: requestChat.uuid, type: 'approve' });
+        }
+    }
+
+    const handleReject = () => {
+        if (requestChat) {
+            vote({ id: requestChat.uuid, type: 'reject' });
+        }
+    }
+
+    const isRequesterTheViewer = useMemo(() => {
+        return user?.uuid === requestChat?.requester.uuid;
+    }, [user?.uuid, requestChat?.requester.uuid]);
 
     useEffect(() => {
         if (requestChat) {
@@ -125,21 +146,62 @@ export const RequestChatPage: FC = () => {
                     type='section'
                     subtitle={requestChat.requester.username}
                     after={
-                        <React.Fragment>
-                            <IconButton
-                                mode="bezeled"
-                                size="s"
+                        !isRequesterTheViewer && (
+                            <div
+                                style={{
+                                    paddingRight: '12px'
+                                }}
                             >
-                                <Icon20Select size={24} />
-                            </IconButton>
-                            <IconButton
-                                onClick={() => console.log('Close chat')}
-                                mode="plain"
-                                size="s"
-                            >
-                                <Icon24Cancel size={24} />
-                            </IconButton>
-                        </React.Fragment>
+                                <IconButton
+                                    style={{ position: "relative" }}
+                                    onClick={() => handleApprove()}
+                                    mode="bezeled"
+                                    size="s"
+                                >
+                                    {requestChat.votes.approved > 0 && (
+                                        <Badge type='number' mode='primary' style={{
+                                            position: "absolute",
+                                            top: -8,
+                                            right: -12,
+                                        }}>
+                                            {requestChat.votes.approved}
+                                        </Badge>
+                                    )}
+                                    {requestChat.userVote === 'approve' && (
+                                        <Badge type="dot" mode="white" style={{
+                                            position: "absolute",
+                                            bottom: -6,
+                                            right: -6,
+                                        }} />
+                                    )}
+                                    <Icon20Select size={24} />
+                                </IconButton>
+                                <IconButton
+                                    onClick={() => handleReject()}
+                                    style={{ position: "relative" }}
+                                    mode="plain"
+                                    size="s"
+                                >
+                                    {requestChat.votes.rejected > 0 && (
+                                        <Badge type='number' mode='critical' style={{
+                                            position: "absolute",
+                                            top: -8,
+                                            right: -12,
+                                        }}>
+                                            {requestChat.votes.rejected}
+                                        </Badge>
+                                    )}
+                                    {requestChat.userVote === 'reject' && (
+                                        <Badge type="dot" mode="white" style={{
+                                            position: "absolute",
+                                            bottom: -6,
+                                            right: -6,
+                                        }} />
+                                    )}
+                                    <Icon24Cancel size={24} />
+                                </IconButton>
+                            </div>
+                        )
                     }
                 >
                     {requestChat.requester.name}
@@ -159,49 +221,53 @@ export const RequestChatPage: FC = () => {
                                     key={message.uuid}
                                     message={message.content}
                                     avatarUrl={message.user.avatarUrl}
-                                    username={message.user.username}
+                                    username={message.user.username!}
                                     isOwn={message.user.uuid === user?.uuid}
-                                    time='10:00 AM'
+                                    time={message.sentAt}
                                 />
                             )
                         })}
                         <div ref={messagesEndRef} />
                     </List>
                 </div>
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '8px 16px',
-                    }}
-                >
-                    <input
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            height: '40px',
-                            width: '100%',
-                            color: 'white',
-                            fontFamily: 'var(--tgui--font-family)',
-                        }}
-                        autoFocus
-                        placeholder="Type a message..."
-                        value={messageContent}
-                        onChange={(e) => setMessageContent(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                sendMessage();
-                            }
-                        }}
-                    />
-                    <IconButton
-                        mode="bezeled"
-                        size="m"
-                        onClick={() => sendMessage()}
-                    >
-                        <Icon16Chevron size={16} />
-                    </IconButton>
-                </div>
+                {
+                    requestChat.state === 'InProgress' && (
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '8px 16px',
+                            }}
+                        >
+                            <input
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    height: '40px',
+                                    width: '100%',
+                                    color: 'white',
+                                    fontFamily: 'var(--tgui--font-family)',
+                                }}
+                                autoFocus
+                                placeholder="Escribe un mensaje..."
+                                value={messageContent}
+                                onChange={(e) => setMessageContent(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        sendMessage();
+                                    }
+                                }}
+                            />
+                            <IconButton
+                                mode="bezeled"
+                                size="m"
+                                onClick={() => sendMessage()}
+                            >
+                                <Icon16Chevron size={16} />
+                            </IconButton>
+                        </div>
+                    )
+                }
             </div>
         </Page>
     );

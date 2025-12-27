@@ -2,7 +2,8 @@ import { User } from "@/models/user.model";
 import { setUser } from "@/state/user.slice";
 import { fetchBaseQuery } from "@reduxjs/toolkit/query";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { type User as TelegramUser } from '@telegram-apps/sdk-react';
+import { retrieveLaunchParams, type User as TelegramUser } from '@telegram-apps/sdk-react';
+import { groupApi } from "./group.service";
 
 export const userApi = createApi({
     reducerPath: 'userApi',
@@ -10,7 +11,16 @@ export const userApi = createApi({
         baseUrl: `${import.meta.env.VITE_API_URL}/users`,
         headers: {
             "ngrok-skip-browser-warning": "true",
-        }
+        },
+        prepareHeaders: (headers) => {
+            const lp = retrieveLaunchParams();
+            const telegramId = lp.tgWebAppData?.user?.id;
+            if (telegramId) {
+                headers.set('x-telegram-id', telegramId.toString());
+            }
+
+            return headers;
+        },
     }),
     endpoints: (builder) => ({
         getUserByTelegramUser: builder.query<User, TelegramUser>({
@@ -22,12 +32,12 @@ export const userApi = createApi({
                 } catch (error: any) {
                     console.log('Error object in onQueryStarted:', error);
                     if (error?.error.status === 404) {
-                        // not found, create it with createUser mutatin
+                        // not found, create it with createUser mutation
                         const newUser: Partial<User> = {
                             telegramId: telegramUser.id,
-                            username: telegramUser?.username || 'Unknown',
+                            username: telegramUser?.username,
                             name: `${telegramUser?.first_name || ''} ${telegramUser?.last_name || ''}`.trim(),
-                            avatarUrl: telegramUser?.photo_url || '',
+                            avatarUrl: telegramUser?.photo_url,
                         };
                         dispatch(userApi.endpoints.createUser.initiate(newUser));
                         console.log('User not found, creating new user:', newUser);
@@ -47,6 +57,7 @@ export const userApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data));
+                    dispatch(groupApi.endpoints.getGroup.initiate());
                 } catch (error) {
                     console.error('Error creating user:', error);
                 }
@@ -57,5 +68,6 @@ export const userApi = createApi({
 
 export const {
     useLazyGetUserByTelegramUserQuery,
+    useGetUserByTelegramUserQuery,
     useCreateUserMutation,
 } = userApi;

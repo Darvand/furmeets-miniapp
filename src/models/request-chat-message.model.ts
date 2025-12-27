@@ -4,5 +4,6 @@ export interface RequestChatMessage {
     uuid: string;
     user: User;
     content: string;
-    createdAt: Date;
+    sentAt: string;
+    viewedByRequester: boolean;
 }

@@ -1,8 +1,8 @@
 export interface User {
     uuid: string;
-    username: string;
-    avatarUrl: string;
     name: string;
+    username?: string;
+    avatarUrl?: string;
     telegramId: number;
-    createdAt: Date;
+    birthdate?: Date;
 }

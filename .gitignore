@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 *.pem
+
+# Environment variables
+.env
