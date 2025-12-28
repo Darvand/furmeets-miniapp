@@ -1,5 +1,5 @@
 import { themeParams } from "@telegram-apps/sdk-react";
-import { Avatar, Caption, Text } from "@telegram-apps/telegram-ui";
+import { Avatar, Caption } from "@telegram-apps/telegram-ui";
 import { FC } from "react";
 
 interface ChatBubbleProps {
@@ -36,7 +36,7 @@ export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avata
                 }}
             >
                 <Caption weight='1'>{username}</Caption>
-                <Text>{message}</Text>
+                <Caption>{message}</Caption>
                 <Caption weight='3' level='2' style={{ alignSelf: 'flex-end' }}>{time}</Caption>
             </div>
         </div>

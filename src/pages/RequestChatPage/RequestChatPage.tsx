@@ -1,8 +1,8 @@
-import { Cell, List, Avatar, IconButton, Spinner, Badge } from '@telegram-apps/telegram-ui';
+import { Cell, List, Avatar, IconButton, Spinner, Badge, Modal, Text, Button } from '@telegram-apps/telegram-ui';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
 import { Icon16Chevron, Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { themeParams } from '@telegram-apps/sdk-react';
 import { ChatBubble } from '@/components/ChatBubble/ChatBubble';
 import { io, Socket } from "socket.io-client";
@@ -25,8 +25,9 @@ export const RequestChatPage: FC = () => {
     const requestChat = useSelector((state: RootState) => state.requestChat);
     const user = useSelector((state: RootState) => state.user);
     const [vote, { isLoading: isVoting }] = useVoteMutation();
-    const [socket, setSocket] = React.useState<Socket | null>(null);
-    const [messageContent, setMessageContent] = React.useState<string>('');
+    const [socket, setSocket] = useState<Socket | null>(null);
+    const [messageContent, setMessageContent] = useState<string>('');
+    const [showModal, setShowModal] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
@@ -128,6 +129,35 @@ export const RequestChatPage: FC = () => {
                     justifyContent: 'space-between',
                 }}
             >
+                <Modal
+                    open={showModal !== ''}
+                >
+                    <div style={{
+                        padding: '24px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '16px',
+                    }}>
+                        {isVoting ? (
+                            <Spinner size='m' />
+                        ) : (
+                            <>
+                                <Text>Estás a punto de {showModal === 'approve' ? 'aceptar' : 'rechazar'} al solicitante</Text>
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '8px',
+                                }}>
+                                    <Button mode='gray' onClick={() => setShowModal('')}>Cancelar</Button>
+                                    <Button onClick={showModal === 'approve' ? handleApprove : handleReject}>
+                                        Entendido
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </Modal>
                 <Cell
                     style={{
                         padding: '0 4px',
@@ -159,7 +189,7 @@ export const RequestChatPage: FC = () => {
                             >
                                 <IconButton
                                     style={{ position: "relative" }}
-                                    onClick={() => handleApprove()}
+                                    onClick={() => setShowModal('approve')}
                                     mode="bezeled"
                                     size="s"
                                 >
@@ -182,7 +212,7 @@ export const RequestChatPage: FC = () => {
                                     <Icon20Select size={24} />
                                 </IconButton>
                                 <IconButton
-                                    onClick={() => handleReject()}
+                                    onClick={() => setShowModal('reject')}
                                     style={{ position: "relative" }}
                                     mode="plain"
                                     size="s"
