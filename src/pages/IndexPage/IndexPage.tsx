@@ -112,7 +112,20 @@ export const IndexPage: FC = () => {
 
   return (
     <Page back={false}>
-      <Section>
+      <Section
+        style={{
+          height: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}
+        footer={<div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '12px'
+        }}>
+          <Caption style={{ color: themeParams.subtitleTextColor(), textAlign: 'center' }}>Desarrollado por <a href="https://t.me/DarvandFrovonwill" style={{ color: themeParams.accentTextColor() }} target="_blank" rel="noopener noreferrer">@DarvandFrovonwill</a></Caption>
+        </div>}>
         {/* <Cell
           Component="label"
           after={<Switch checked={isRequester} onClick={() => setIsRequester(!isRequester)} readOnly />}

@@ -25,12 +25,15 @@ export const RequestChatList: React.FC<RequestChatListProps> = ({ requestChats, 
                 <Caption weight="3">{type === 'InProgress' ? 'Solicitudes en progreso' : 'Solicitudes completadas'}</Caption>
             </AccordionSummary>
             <AccordionContent>
-                <List>
+                <List style={{
+                    padding: '8px 0px'
+                }}>
                     {requestChats.map((chat) => (
                         <Cell
                             key={chat.uuid}
                             style={{
                                 padding: '0 8px',
+                                margin: '-12px 0',
                                 gap: '12px'
                             }}
                             before={<Avatar
