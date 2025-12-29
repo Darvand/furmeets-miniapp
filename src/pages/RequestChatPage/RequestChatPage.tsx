@@ -146,7 +146,13 @@ export const RequestChatPage: FC = () => {
                             <Spinner size='m' />
                         ) : (
                             <>
-                                <Text>Estás a punto de {showModal === 'approve' ? 'aceptar' : 'rechazar'} al solicitante</Text>
+                                {
+                                    !!requestChat.userVote ? (
+                                        <Text>Estás a punto de retirar tu voto</Text>
+                                    ) : (
+                                        <Text>Estás a punto de {showModal === 'approve' ? 'aceptar' : 'rechazar'} al solicitante</Text>
+                                    )
+                                }
                                 <div style={{
                                     display: 'flex',
                                     gap: '8px',
