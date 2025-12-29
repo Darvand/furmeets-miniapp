@@ -79,12 +79,14 @@ export const RequestChatPage: FC = () => {
     const handleApprove = () => {
         if (requestChat && !isVoting) {
             vote({ id: requestChat.uuid, type: 'approve' });
+            setShowModal('');
         }
     }
 
     const handleReject = () => {
         if (requestChat && !isVoting) {
             vote({ id: requestChat.uuid, type: 'reject' });
+            setShowModal('');
         }
     }
 
