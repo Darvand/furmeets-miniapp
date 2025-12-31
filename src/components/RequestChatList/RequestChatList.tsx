@@ -30,6 +30,7 @@ export const RequestChatList: React.FC<RequestChatListProps> = ({ requestChats, 
                 }}>
                     {requestChats.map((chat) => (
                         <Cell
+                            Component='div'
                             key={chat.uuid}
                             style={{
                                 padding: '0 8px',

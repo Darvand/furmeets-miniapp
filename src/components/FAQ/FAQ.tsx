@@ -10,13 +10,13 @@ export const FAQ: React.FC = () => {
     return (
         <div
             style={{
-                padding: '12px 24px'
+                padding: '12px 0'
             }}
         >
-            <Text weight='2' style={{ color: themeParams.accentTextColor() }}>Preguntas Frecuentes</Text>
+            <Text weight='2' style={{ color: themeParams.accentTextColor(), padding: '12px 24px' }}>Preguntas Frecuentes</Text>
             <List>
                 <Accordion expanded={expandHowRequestsWorks} onChange={() => setExpandHowRequestsWorks(!expandHowRequestsWorks)}>
-                    <AccordionSummary style={{ margin: 0, padding: 0 }}>
+                    <AccordionSummary style={{ margin: 0, padding: '0px 24px' }}>
                         <Caption weight="2">Solicitudes</Caption>
                     </AccordionSummary>
                     <AccordionContent>
@@ -29,7 +29,7 @@ export const FAQ: React.FC = () => {
                     </AccordionContent>
                 </Accordion>
                 <Accordion expanded={expandWhatBotCanDo} onChange={() => setExpandWhatBotCanDo(!expandWhatBotCanDo)}>
-                    <AccordionSummary style={{ margin: 0, padding: 0 }}>
+                    <AccordionSummary style={{ margin: 0, padding: '0px 24px' }}>
                         <Caption weight="2">¿Qué más puede hacer el bot?</Caption>
                     </AccordionSummary>
                     <AccordionContent>

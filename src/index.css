@@ -13,3 +13,10 @@ input {
   /* For Firefox */
   appearance: none;
 }
+
+/* Disable Cell hover effects */
+@media (hover: hover) and (pointer: fine) {
+  .tgui-b8dfba0b5c3d054c:hover {
+    background: none !important;
+  }
+}
