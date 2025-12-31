@@ -18,7 +18,7 @@ export const LoadingPage: FC = () => {
                 <Snackbar
                     onClose={() => { }}
                     before={<InfoCircleOutline28 />}
-                    duration={1000}
+                    duration={100000}
                 >
                     Usamos un servicio gratuito para alojar nuestra API, por lo que en ocasiones puede tardar un poco en responder. ¡Gracias por tu paciencia!
                 </Snackbar>
