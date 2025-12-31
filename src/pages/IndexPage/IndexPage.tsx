@@ -1,4 +1,4 @@
-import { Avatar, Caption, Headline, IconButton, Section, Title, Tooltip } from '@telegram-apps/telegram-ui';
+import { Avatar, Caption, Headline, IconButton, Section, Tooltip } from '@telegram-apps/telegram-ui';
 import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
@@ -90,22 +90,6 @@ export const IndexPage: FC = () => {
     return (
       <Page back={false}>
         <LoadingPage />
-      </Page>
-    );
-  }
-
-  if (requestChats.length === 0) {
-    return (
-      <Page back={false}>
-        <div style={{
-          flex: 1,
-          height: '100dvh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <Title>No hay solicitudes de chat disponibles.</Title>
-        </div>
       </Page>
     );
   }
