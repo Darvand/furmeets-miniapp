@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "homepage": "https://Darvand.github.io/furmeets-miniapp",
+  "homepage": "https://furmeets-miniapp-iota-red.vercel.app/",
   "scripts": {
     "deploy": "gh-pages -d dist",
     "dev": "vite",

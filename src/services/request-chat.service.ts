@@ -12,9 +12,6 @@ export const requestChatApi = createApi({
     reducerPath: 'requestChatApi',
     baseQuery: fetchBaseQuery({
         baseUrl: `${import.meta.env.VITE_API_URL}/request-chats`,
-        headers: {
-            "ngrok-skip-browser-warning": "true",
-        },
         prepareHeaders: (headers) => {
             const lp = retrieveLaunchParams();
             const telegramId = lp.tgWebAppData?.user?.id;

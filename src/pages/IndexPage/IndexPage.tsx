@@ -110,13 +110,6 @@ export const IndexPage: FC = () => {
         }}>
           <Caption style={{ color: themeParams.subtitleTextColor(), textAlign: 'center' }}>Desarrollado por <a href="https://t.me/DarvandFrovonwill" style={{ color: themeParams.accentTextColor() }} target="_blank" rel="noopener noreferrer">@DarvandFrovonwill</a></Caption>
         </div>}>
-        {/* <Cell
-          Component="label"
-          after={<Switch checked={isRequester} onClick={() => setIsRequester(!isRequester)} readOnly />}
-          description="Simula ser el solicitante o tu mismo usuario"
-        >
-          {isRequester ? 'Simulando' : user.username}
-        </Cell> */}
         <div
           style={{
             display: 'flex',
@@ -158,7 +151,6 @@ export const IndexPage: FC = () => {
         </div>
         <FAQ />
       </Section>
-      {/* <Button onClick={handleNavigateToUserProfile}>Go to User Profile</Button> */}
     </Page>
   );
 };

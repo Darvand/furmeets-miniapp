@@ -9,9 +9,6 @@ export const userApi = createApi({
     reducerPath: 'userApi',
     baseQuery: fetchBaseQuery({
         baseUrl: `${import.meta.env.VITE_API_URL}/users`,
-        headers: {
-            "ngrok-skip-browser-warning": "true",
-        },
         prepareHeaders: (headers) => {
             const lp = retrieveLaunchParams();
             const telegramId = lp.tgWebAppData?.user?.id;
@@ -30,9 +27,7 @@ export const userApi = createApi({
                     const { data } = await queryFulfilled;
                     dispatch(setUser(data));
                 } catch (error: any) {
-                    console.log('Error object in onQueryStarted:', error);
                     if (error?.error.status === 404) {
-                        // not found, create it with createUser mutation
                         const newUser: Partial<User> = {
                             telegramId: telegramUser.id,
                             username: telegramUser?.username,
