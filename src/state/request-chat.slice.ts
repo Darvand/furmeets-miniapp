@@ -4,7 +4,9 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type NullableRequestChat = RequestChat | null;
 
-const BOT_FILE_URL = `https://api.telegram.org/file/bot${import.meta.env.VITE_TELEGRAM_BOT_TOKEN}`;
+// Los avatares y la foto del grupo llegan como rutas de archivo de Telegram, que solo se
+// descargan con el token del bot. El token no puede ir en el bundle: hasta que la API las
+// sirva por /media/:id (T08/T09) se muestran las iniciales.
 
 export const requestChatSlice = createSlice({
     name: 'requestChat',
@@ -15,13 +17,13 @@ export const requestChatSlice = createSlice({
                 ...action.payload,
                 requester: {
                     ...action.payload.requester,
-                    avatarUrl: `${BOT_FILE_URL}/${action.payload.requester.avatarUrl}`
+                    avatarUrl: undefined
                 },
                 messages: action.payload.messages.map(msg => ({
                     ...msg,
                     user: {
                         ...msg.user,
-                        avatarUrl: `${BOT_FILE_URL}/${msg.user.avatarUrl}`
+                        avatarUrl: undefined
                     }
                 })),
             };
@@ -32,7 +34,7 @@ export const requestChatSlice = createSlice({
                     ...action.payload,
                     user: {
                         ...action.payload.user,
-                        avatarUrl: `${BOT_FILE_URL}/${action.payload.user.avatarUrl}`
+                        avatarUrl: undefined
                     }
                 });
             }

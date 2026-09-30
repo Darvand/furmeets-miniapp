@@ -1,4 +1,4 @@
-import { wrapLastText } from "@/helpers/text";
+import { initials, wrapLastText } from "@/helpers/text";
 import { RequestChatItem } from "@/models/request-chat.model";
 import { themeParams } from "@telegram-apps/sdk-react";
 import { Accordion, Avatar, Badge, Caption, Cell, List } from "@telegram-apps/telegram-ui";
@@ -40,6 +40,7 @@ export const RequestChatList: React.FC<RequestChatListProps> = ({ requestChats, 
                             before={<Avatar
                                 size={40}
                                 src={chat.requester.avatarUrl}
+                                acronym={initials(chat.requester.name)}
                             />}
                             subtitle={
                                 <div>

@@ -18,6 +18,7 @@ import { RequestChatMessage } from '@/models/request-chat-message.model';
 import { RequestChatList } from '@/components/RequestChatList/RequestChatList';
 import { FAQ } from '@/components/FAQ/FAQ';
 import { Icon20QuestionMark } from 'tmaui/icons';
+import { initials } from '@/helpers/text';
 
 export const IndexPage: FC = () => {
   const navigate = useNavigate();
@@ -119,7 +120,7 @@ export const IndexPage: FC = () => {
             backgroundColor: themeParams.secondaryBackgroundColor(),
           }}
         >
-          <Avatar size={48} src={group.photoUrl} />
+          <Avatar size={48} src={group.photoUrl} acronym={initials(group.name)} />
           <Headline weight="3">{group.name}</Headline>
           <div style={{
             display: 'flex',

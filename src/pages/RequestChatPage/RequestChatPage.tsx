@@ -13,7 +13,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addMessage, setRequestChat } from '@/state/request-chat.slice';
 import { RootState } from '@/state/store';
 import { RequestChat } from '@/models/request-chat.model';
-import { wrapLastText } from '@/helpers/text';
+import { initials, wrapLastText } from '@/helpers/text';
 
 export const RequestChatPage: FC = () => {
     const params = useParams<{ uuid: string }>();
@@ -184,6 +184,7 @@ export const RequestChatPage: FC = () => {
                             <Avatar
                                 size={40}
                                 src={requestChat.requester.avatarUrl}
+                                acronym={initials(requestChat.requester.name)}
                             />
                         </div>
                     }

@@ -1,6 +1,7 @@
 import { themeParams } from "@telegram-apps/sdk-react";
 import { Avatar, Caption } from "@telegram-apps/telegram-ui";
 import { FC } from "react";
+import { initials } from "@/helpers/text";
 
 interface ChatBubbleProps {
     message: string;
@@ -21,7 +22,8 @@ export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avata
         >
             <Avatar
                 size={40}
-                src={avatarUrl || "https://avatars.githubusercontent.com/u/84640980?v=4"}
+                src={avatarUrl}
+                acronym={initials(username)}
             />
             <div
                 style={{
