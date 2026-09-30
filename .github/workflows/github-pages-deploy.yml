@@ -42,7 +42,6 @@ jobs:
 
       - name: Build
         env:
-          VITE_TELEGRAM_BOT_TOKEN: ${{ secrets.VITE_TELEGRAM_BOT_TOKEN }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
         run: npm run build
 

@@ -9,6 +9,7 @@ import { LoadingPage } from "../LoadingPage";
 import { useCreateRequestChatMutation } from "@/services/request-chat.service";
 import { setRequestChat } from "@/state/request-chat.slice";
 import { useNavigate } from "react-router-dom";
+import { initials } from "@/helpers/text";
 
 export const RegisterPage: FC = () => {
     const user = useSelector((state: RootState) => state.user);
@@ -56,7 +57,7 @@ export const RegisterPage: FC = () => {
                         padding: '32px 16px',
                     }}
                 >
-                    <Avatar size={96} src={group.photoUrl} />
+                    <Avatar size={96} src={group.photoUrl} acronym={initials(group.name)} />
                     <Title weight="1">{group.name}</Title>
                     <Caption style={{ color: themeParams.subtitleTextColor() }}>{group.description}</Caption>
                     <Divider />
