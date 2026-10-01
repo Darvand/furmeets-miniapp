@@ -1,82 +1,52 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { Navigate, Route, Routes, HashRouter } from 'react-router-dom';
-import {
-  retrieveLaunchParams,
-  useSignal,
-  isMiniAppDark,
-  initDataRaw as _initDataRaw,
-  initDataState as _initDataState,
-} from '@telegram-apps/sdk-react';
+import { retrieveLaunchParams, useSignal, isMiniAppDark } from '@telegram-apps/sdk-react';
 import { AppRoot } from '@telegram-apps/telegram-ui';
+import { useSelector } from 'react-redux';
 
 import { routes } from '@/navigation/routes.tsx';
-import { privateRoutes } from '@/navigation/private-routes';
-import { RequireBeMember } from './RequireBeMember';
-import { useLazyGetUserByTelegramUserQuery } from '@/services/user.service';
-import { useLazyGetGroupQuery, useSyncMutation } from '@/services/group.service';
+import { homePathFor } from '@/navigation/role-home';
+import { RoleRoute } from './RoleRoute';
 import { LoadingPage } from '@/pages/LoadingPage';
-import { useLazyGetAllRequestChatsQuery } from '@/services/request-chat.service';
-
+import { StartupErrorPage } from '@/pages/StartupErrorPage';
+import { useGetMeQuery } from '@/services/me.service';
+import { useGetGroupQuery } from '@/services/group.service';
+import { RootState } from '@/state/store';
 
 export function App() {
   const lp = useMemo(() => retrieveLaunchParams(), []);
   const isDark = useSignal(isMiniAppDark);
-  const initDataState = useSignal(_initDataState);
-  const hasInitialized = useRef(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const me = useSelector((state: RootState) => state.me);
 
-  const [sync] = useSyncMutation();
-  const [getUser] = useLazyGetUserByTelegramUserQuery();
-  const [getGroup] = useLazyGetGroupQuery();
-  const [getRequestChats] = useLazyGetAllRequestChatsQuery();
-  useEffect(() => {
-    const initState = async () => {
-      if (initDataState?.user && !hasInitialized.current) {
-        hasInitialized.current = true;
-        try {
-          await sync();
-          await getRequestChats();
-          await getGroup();
-          await getUser(initDataState.user);
-        } catch (error) {
-          console.error('Error initializing app:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      } else if (!initDataState?.user) {
-        setIsLoading(false);
-      }
-    }
-    initState();
-  }, [sync, getUser, getGroup, initDataState]);
+  // Arranque: `GET /me` decide a qué pantalla ir. El grupo no depende del rol (lo usan
+  // Inicio y Formulario), así que se pide en paralelo y no en cadena.
+  const { isError, isFetching, refetch } = useGetMeQuery();
+  useGetGroupQuery();
 
-  if (isLoading) {
-    return (
-      <AppRoot
-        appearance={isDark ? 'dark' : 'light'}
-        platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
-      >
-        <HashRouter>
-
-          <LoadingPage />
-        </HashRouter>
-      </AppRoot>
+  let content;
+  if (me) {
+    content = (
+      <Routes>
+        {routes.map(({ allow, ...route }) => (
+          <Route key={route.path} element={<RoleRoute allow={allow} />}>
+            <Route {...route} />
+          </Route>
+        ))}
+        <Route path="*" element={<Navigate to={homePathFor(me)} replace />} />
+      </Routes>
     );
+  } else if (isError && !isFetching) {
+    content = <StartupErrorPage onRetry={refetch} />;
+  } else {
+    content = <LoadingPage />;
   }
+
   return (
     <AppRoot
       appearance={isDark ? 'dark' : 'light'}
       platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
     >
-      <HashRouter>
-        <Routes>
-          {privateRoutes.map((route) => <Route element={<RequireBeMember />}>
-            <Route key={route.path} {...route} />
-          </Route>)}
-          {routes.map((route) => <Route key={route.path} {...route} />)}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </HashRouter>
+      <HashRouter>{content}</HashRouter>
     </AppRoot>
   );
 }

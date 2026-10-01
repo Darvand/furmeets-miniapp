@@ -1,22 +1,11 @@
 import { Group } from "@/models/group.model";
 import { setGroup } from "@/state/hub.slice";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { retrieveLaunchParams } from '@telegram-apps/sdk-react';
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { authBaseQuery } from "./api";
 
 export const groupApi = createApi({
     reducerPath: 'groupApi',
-    baseQuery: fetchBaseQuery({
-        baseUrl: `${import.meta.env.VITE_API_URL}/groups`,
-        prepareHeaders: (headers) => {
-            const lp = retrieveLaunchParams();
-            const telegramId = lp.tgWebAppData?.user?.id;
-            if (telegramId) {
-                headers.set('x-telegram-id', telegramId.toString());
-            }
-
-            return headers;
-        },
-    }),
+    baseQuery: authBaseQuery('/groups'),
     endpoints: (builder) => ({
         getGroup: builder.query<Group, void>({
             query: () => `/`,
@@ -29,17 +18,9 @@ export const groupApi = createApi({
                 }
             },
         }),
-        sync: builder.mutation<void, void>({
-            query: () => ({
-                url: `/sync`,
-                method: 'POST',
-            }),
-        }),
     })
 })
 
 export const {
     useGetGroupQuery,
-    useSyncMutation,
-    useLazyGetGroupQuery,
 } = groupApi;

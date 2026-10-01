@@ -2,7 +2,8 @@ import { requestChatApi } from "@/services/request-chat.service";
 import { configureStore } from "@reduxjs/toolkit";
 import { requestChatReducer } from "./request-chat.slice";
 import { userReducer } from "./user.slice";
-import { userApi } from "@/services/user.service";
+import { meApi } from "@/services/me.service";
+import { meReducer } from "./me.slice";
 import { hubReducer } from "./hub.slice";
 import { groupApi } from "@/services/group.service";
 
@@ -10,16 +11,17 @@ import { groupApi } from "@/services/group.service";
 export const store = configureStore({
     reducer: {
         [requestChatApi.reducerPath]: requestChatApi.reducer,
-        [userApi.reducerPath]: userApi.reducer,
+        [meApi.reducerPath]: meApi.reducer,
         [groupApi.reducerPath]: groupApi.reducer,
         requestChat: requestChatReducer,
         user: userReducer,
+        me: meReducer,
         hub: hubReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware()
             .concat(requestChatApi.middleware)
-            .concat(userApi.middleware)
+            .concat(meApi.middleware)
             .concat(groupApi.middleware),
 })
 

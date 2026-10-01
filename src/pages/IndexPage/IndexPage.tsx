@@ -1,20 +1,13 @@
 import { Avatar, Caption, Headline, IconButton, Section, Tooltip } from '@telegram-apps/telegram-ui';
-import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
+import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
-import { useLazyGetUserByTelegramUserQuery } from '@/services/user.service';
 import { useGetAllRequestChatsQuery } from '@/services/request-chat.service';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/state/store';
-import {
-  initDataRaw as _initDataRaw,
-  initDataState as _initDataState,
-  themeParams,
-  useSignal,
-} from '@telegram-apps/sdk-react';
+import { themeParams } from '@telegram-apps/sdk-react';
 import { LoadingPage } from '../LoadingPage';
-import { io, Socket } from 'socket.io-client';
-import { RequestChatMessage } from '@/models/request-chat-message.model';
+import { createSocket } from '@/services/api';
 import { RequestChatList } from '@/components/RequestChatList/RequestChatList';
 import { FAQ } from '@/components/FAQ/FAQ';
 import { Icon20QuestionMark } from 'tmaui/icons';
@@ -22,51 +15,23 @@ import { initials } from '@/helpers/text';
 
 export const IndexPage: FC = () => {
   const navigate = useNavigate();
-  const initDataState = useSignal(_initDataState);
-  const [isRequester] = useState(false);
+  // Solo se llega aquí como miembro: el listado se pide al montar, una sola vez.
   const { isLoading: isRequestChatsLoading, refetch } = useGetAllRequestChatsQuery();
   const requestChats = useSelector((state: RootState) => state.hub.requestChats);
   const user = useSelector((state: RootState) => state.user);
   const group = useSelector((state: RootState) => state.hub.group);
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [toolTipRef, setToolTipRef] = useState<HTMLElement | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const authenticate = useCallback(() => {
-    const socket = io(`${import.meta.env.VITE_API_URL}`);
-    setSocket(socket);
-
-    socket.on('request-chat', (_: RequestChatMessage) => {
-      refetch();
-    })
-
-    socket.on('request-chat-update', (_: RequestChatMessage) => {
-      refetch();
-    });
-
-    socket.on('new-request-chat', (_: RequestChatMessage) => {
-      refetch();
-    });
-
-    return socket;
-  }, []);
-
+  // Actualiza el listado cuando hay actividad (T42 lo cambia por parches sin recargar).
   useEffect(() => {
-    const socket = authenticate();
+    const socket = createSocket();
+    socket.on('request-chat', () => refetch());
+    socket.on('request-chat-update', () => refetch());
+    socket.on('new-request-chat', () => refetch());
     return () => {
       socket.disconnect();
     };
-  }, [authenticate]);
-
-  useEffect(() => {
-    refetch();
   }, [refetch]);
-
-  const telegramUserId = initDataState?.user?.id || 1;
-  const [getUserByTelegramUser, { isLoading: isGettingUser }] = useLazyGetUserByTelegramUserQuery();
-
-  const isLoading = useMemo(() => {
-    return isGettingUser || isRequestChatsLoading || !socket;
-  }, [isGettingUser, isRequestChatsLoading, socket]);
 
   const requestChatsInProgress = useMemo(() => {
     return requestChats.filter(rc => rc.state === 'InProgress');
@@ -76,18 +41,11 @@ export const IndexPage: FC = () => {
     return requestChats.filter(rc => rc.state !== 'InProgress');
   }, [requestChats]);
 
-  useEffect(() => {
-    if (isRequester) {
-      getUserByTelegramUser({ id: 123456789 } as any);
-    } else {
-      getUserByTelegramUser(initDataState!.user!);
-    }
-  }, [isRequester, telegramUserId, getUserByTelegramUser]);
   const handleNavigateToChat = (requestChatId: string) => {
     navigate(`/request-chat/${requestChatId}`);
   };
 
-  if (!user || isLoading || !group) {
+  if (!user || isRequestChatsLoading || !group) {
     return (
       <Page back={false}>
         <LoadingPage />

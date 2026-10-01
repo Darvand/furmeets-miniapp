@@ -2,20 +2,17 @@ import { Page } from "@/components/Page";
 import { RootState } from "@/state/store";
 import { themeParams } from "@telegram-apps/sdk-react";
 import { Avatar, Blockquote, Button, Caption, Divider, Input, List, Section, Title } from "@telegram-apps/telegram-ui";
-import { FC, useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { FC, useState } from "react";
+import { useSelector } from "react-redux";
 import { Icon24Channel } from "tmaui/icons";
 import { LoadingPage } from "../LoadingPage";
 import { useCreateRequestChatMutation } from "@/services/request-chat.service";
-import { setRequestChat } from "@/state/request-chat.slice";
 import { useNavigate } from "react-router-dom";
 import { initials } from "@/helpers/text";
 
 export const RegisterPage: FC = () => {
     const user = useSelector((state: RootState) => state.user);
     const group = useSelector((state: RootState) => state.hub.group);
-    const requestChats = useSelector((state: RootState) => state.hub.requestChats);
-    const dispatch = useDispatch();
     const navigate = useNavigate();
 
     const [createRequestChat, { isLoading }] = useCreateRequestChatMutation();
@@ -25,26 +22,18 @@ export const RegisterPage: FC = () => {
 
     const handleSubmit = async () => {
         if (!user) return;
+        // El servicio guarda la solicitud y la registra como propia (`me.requestChatId`).
         const requestChat = await createRequestChat({
             requesterUUID: user.uuid,
             whereYouFoundUs: whereYouFoundUs || undefined,
             interests: interests || undefined,
         }).unwrap();
-        dispatch(setRequestChat(requestChat));
         navigate(`/request-chat/${requestChat.uuid}`, { replace: true });
     }
 
     if (!user || !group) {
         return (<LoadingPage />);
     }
-    const requestChat = useMemo(() => {
-        return requestChats.find(rc => rc.requester.uuid === user.uuid);
-    }, [requestChats, user]);
-    useEffect(() => {
-        if (requestChat) {
-            navigate(`/request-chat/${requestChat.uuid}`, { replace: true });
-        }
-    }, [requestChat, navigate]);
     return (
         <Page back={true}>
             <Section>
