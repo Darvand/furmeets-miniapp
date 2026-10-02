@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { Navigate, Route, Routes, HashRouter } from 'react-router-dom';
 import { retrieveLaunchParams, useSignal, isMiniAppDark } from '@telegram-apps/sdk-react';
-import { AppRoot } from '@telegram-apps/telegram-ui';
+import { AppRoot, Spinner } from '@telegram-apps/telegram-ui';
 import { useSelector } from 'react-redux';
 
 import { routes } from '@/navigation/routes.tsx';
@@ -12,6 +12,15 @@ import { StartupErrorPage } from '@/pages/StartupErrorPage';
 import { useGetMeQuery } from '@/services/me.service';
 import { useGetGroupQuery } from '@/services/group.service';
 import { RootState } from '@/state/store';
+
+/** Mientras se descarga el chunk de la página (rutas con `React.lazy`). */
+function PageChunkFallback() {
+  return (
+    <div style={{ height: '100dvh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <Spinner size="m" />
+    </div>
+  );
+}
 
 export function App() {
   const lp = useMemo(() => retrieveLaunchParams(), []);
@@ -26,14 +35,16 @@ export function App() {
   let content;
   if (me) {
     content = (
-      <Routes>
-        {routes.map(({ allow, ...route }) => (
-          <Route key={route.path} element={<RoleRoute allow={allow} />}>
-            <Route {...route} />
-          </Route>
-        ))}
-        <Route path="*" element={<Navigate to={homePathFor(me)} replace />} />
-      </Routes>
+      <Suspense fallback={<PageChunkFallback />}>
+        <Routes>
+          {routes.map(({ allow, ...route }) => (
+            <Route key={route.path} element={<RoleRoute allow={allow} />}>
+              <Route {...route} />
+            </Route>
+          ))}
+          <Route path="*" element={<Navigate to={homePathFor(me)} replace />} />
+        </Routes>
+      </Suspense>
     );
   } else if (isError && !isFetching) {
     content = <StartupErrorPage onRetry={refetch} />;
