@@ -47,7 +47,7 @@ export function App() {
       </Suspense>
     );
   } else if (isError && !isFetching) {
-    content = <StartupErrorPage onRetry={refetch} />;
+    content = <StartupErrorPage onRetry={() => void refetch()} />;
   } else {
     content = <LoadingPage />;
   }

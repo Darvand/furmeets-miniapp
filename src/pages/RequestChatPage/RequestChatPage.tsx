@@ -84,14 +84,14 @@ export const RequestChatPage: FC = () => {
 
     const handleApprove = () => {
         if (requestChat && !isVoting) {
-            vote({ id: requestChat.uuid, type: 'approve' });
+            void vote({ id: requestChat.uuid, type: 'approve' });
             setShowModal('');
         }
     }
 
     const handleReject = () => {
         if (requestChat && !isVoting) {
-            vote({ id: requestChat.uuid, type: 'reject' });
+            void vote({ id: requestChat.uuid, type: 'reject' });
             setShowModal('');
         }
     }
@@ -124,7 +124,7 @@ export const RequestChatPage: FC = () => {
         </Page>;
     }
     if (isError) {
-        return <Page back={true}>Error loading chat. <button onClick={() => refetch()}>Retry</button></Page>;
+        return <Page back={true}>Error loading chat. <button onClick={() => void refetch()}>Retry</button></Page>;
     }
 
     return (
@@ -153,7 +153,7 @@ export const RequestChatPage: FC = () => {
                         ) : (
                             <>
                                 {
-                                    !!requestChat.userVote ? (
+                                    requestChat.userVote ? (
                                         <Text>Estás a punto de retirar tu voto</Text>
                                     ) : (
                                         <Text>Estás a punto de {showModal === 'approve' ? 'aceptar' : 'rechazar'} al solicitante</Text>
