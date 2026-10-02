@@ -6,7 +6,9 @@ export type RequestChatVoteType = 'approve' | 'reject';
 export interface RequestChatItem {
     uuid: string;
     unreadMessagesCount: number;
-    lastMessage: {
+    /** Falta si la solicitud no tiene mensajes. */
+    lastMessage?: {
+        /** ISO-8601 UTC (ver `formatChatTime`). */
         at: string;
         content: string;
         from: User;
