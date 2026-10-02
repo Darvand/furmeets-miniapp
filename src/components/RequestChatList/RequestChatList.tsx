@@ -1,4 +1,5 @@
 import { initials, wrapLastText } from "@/helpers/text";
+import { formatChatTime } from "@/helpers/date";
 import { RequestChatItem } from "@/models/request-chat.model";
 import { themeParams } from "@telegram-apps/sdk-react";
 import { Accordion, Badge, Caption, Cell, List } from "@telegram-apps/telegram-ui";
@@ -43,15 +44,15 @@ export const RequestChatList: React.FC<RequestChatListProps> = ({ requestChats, 
                                 mediaId={chat.requester.avatarMediaId}
                                 acronym={initials(chat.requester.name)}
                             />}
-                            subtitle={
+                            subtitle={chat.lastMessage && (
                                 <div>
                                     <Caption style={{ color: themeParams.accentTextColor() }}>{chat.lastMessage.from.name}: </Caption>
                                     <Caption>{wrapLastText(30, chat.lastMessage.from.name, chat.lastMessage.content)}</Caption>
                                 </div>
-                            }
+                            )}
                             after={
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <Caption>{chat.lastMessage.at}</Caption>
+                                    {chat.lastMessage && <Caption>{formatChatTime(chat.lastMessage.at)}</Caption>}
                                     <Badge mode="gray" type="number">{chat.unreadMessagesCount}</Badge>
                                 </div>
                             }

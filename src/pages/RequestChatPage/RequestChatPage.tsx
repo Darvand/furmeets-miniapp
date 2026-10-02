@@ -18,6 +18,7 @@ import { addMessage, setRequestChat } from '@/state/request-chat.slice';
 import { RootState } from '@/state/store';
 import { RequestChat } from '@/models/request-chat.model';
 import { initials, wrapLastText } from '@/helpers/text';
+import { formatChatTime } from '@/helpers/date';
 
 export const RequestChatPage: FC = () => {
     const params = useParams<{ uuid: string }>();
@@ -274,7 +275,7 @@ export const RequestChatPage: FC = () => {
                                     avatarMediaId={message.user.avatarMediaId}
                                     username={message.user.username!}
                                     isOwn={message.user.uuid === user?.uuid}
-                                    time={message.sentAt}
+                                    time={formatChatTime(message.sentAt)}
                                 />
                             )
                         })}

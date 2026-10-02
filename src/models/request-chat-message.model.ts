@@ -4,6 +4,7 @@ export interface RequestChatMessage {
     uuid: string;
     user: User;
     content: string;
+    /** ISO-8601 UTC (ver `formatChatTime`). */
     sentAt: string;
     viewedByRequester: boolean;
 }
