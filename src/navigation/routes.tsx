@@ -1,11 +1,18 @@
-import type { ComponentType, JSX } from 'react';
+import { lazy, type ComponentType, type JSX } from 'react';
 
 import type { RouteAccess } from '@/components/RoleRoute';
-import { IndexPage } from '@/pages/IndexPage/IndexPage';
-import { RegisterPage } from '@/pages/RegisterPage/RegisterPage';
-import { RequestChatPage } from '@/pages/RequestChatPage/RequestChatPage';
-import { ApprovedPage } from '@/pages/ApprovedPage';
-import { NotApprovedPage } from '@/pages/NotApprovedPage';
+
+// Cada página es su propio chunk: el arranque solo descarga la que abre el usuario.
+const IndexPage = lazy(() =>
+  import('@/pages/IndexPage/IndexPage').then((m) => ({ default: m.IndexPage })));
+const RegisterPage = lazy(() =>
+  import('@/pages/RegisterPage/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const RequestChatPage = lazy(() =>
+  import('@/pages/RequestChatPage/RequestChatPage').then((m) => ({ default: m.RequestChatPage })));
+const ApprovedPage = lazy(() =>
+  import('@/pages/ApprovedPage').then((m) => ({ default: m.ApprovedPage })));
+const NotApprovedPage = lazy(() =>
+  import('@/pages/NotApprovedPage').then((m) => ({ default: m.NotApprovedPage })));
 
 interface Route {
   path: string;
