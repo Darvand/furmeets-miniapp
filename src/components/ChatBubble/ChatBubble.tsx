@@ -1,17 +1,18 @@
 import { themeParams } from "@telegram-apps/sdk-react";
-import { Avatar, Caption } from "@telegram-apps/telegram-ui";
+import { Caption } from "@telegram-apps/telegram-ui";
 import { FC } from "react";
 import { initials } from "@/helpers/text";
+import { MediaAvatar } from "@/components/MediaAvatar";
 
 interface ChatBubbleProps {
     message: string;
     username: string;
     time: string;
-    avatarUrl?: string;
+    avatarMediaId?: string;
     isOwn?: boolean;
 }
 
-export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarUrl, isOwn }) => {
+export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarMediaId, isOwn }) => {
     return (
         <div
             style={{
@@ -20,9 +21,9 @@ export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avata
                 marginBottom: '12px',
             }}
         >
-            <Avatar
+            <MediaAvatar
                 size={40}
-                src={avatarUrl}
+                mediaId={avatarMediaId}
                 acronym={initials(username)}
             />
             <div

@@ -2,10 +2,6 @@ import { Group } from "@/models/group.model";
 import { RequestChatItem } from "@/models/request-chat.model"
 import { createSlice, PayloadAction } from "@reduxjs/toolkit/react";
 
-// Los avatares y la foto del grupo llegan como rutas de archivo de Telegram, que solo se
-// descargan con el token del bot. El token no puede ir en el bundle: hasta que la API las
-// sirva por /media/:id (T08/T09) se muestran las iniciales.
-
 interface HubState {
     requestChats: RequestChatItem[];
     group: Group | null;
@@ -21,26 +17,10 @@ export const hubSlice = createSlice({
     initialState,
     reducers: {
         setRequestChats: (state: HubState, action: PayloadAction<RequestChatItem[]>) => {
-            state.requestChats = action.payload.map(item => ({
-                ...item,
-                requester: {
-                    ...item.requester,
-                    avatarUrl: undefined
-                },
-                lastMessage: {
-                    ...item.lastMessage,
-                    from: {
-                        ...item.lastMessage.from,
-                        avatarUrl: undefined
-                    }
-                }
-            }))
+            state.requestChats = action.payload;
         },
         setGroup: (state: HubState, action: PayloadAction<Group>) => {
-            state.group = {
-                ...action.payload,
-                photoUrl: ''
-            };
+            state.group = action.payload;
         },
     }
 })
