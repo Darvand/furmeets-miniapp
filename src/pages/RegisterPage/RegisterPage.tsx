@@ -1,7 +1,8 @@
 import { Page } from "@/components/Page";
 import { RootState } from "@/state/store";
 import { themeParams } from "@telegram-apps/sdk-react";
-import { Avatar, Blockquote, Button, Caption, Divider, Input, List, Section, Title } from "@telegram-apps/telegram-ui";
+import { Blockquote, Button, Caption, Divider, Input, List, Section, Title } from "@telegram-apps/telegram-ui";
+import { MediaAvatar } from "@/components/MediaAvatar";
 import { FC, useState } from "react";
 import { useSelector } from "react-redux";
 import { Icon24Channel } from "tmaui/icons";
@@ -46,7 +47,7 @@ export const RegisterPage: FC = () => {
                         padding: '32px 16px',
                     }}
                 >
-                    <Avatar size={96} src={group.photoUrl} acronym={initials(group.name)} />
+                    <MediaAvatar size={96} mediaId={group.photoMediaId} acronym={initials(group.name)} />
                     <Title weight="1">{group.name}</Title>
                     <Caption style={{ color: themeParams.subtitleTextColor() }}>{group.description}</Caption>
                     <Divider />

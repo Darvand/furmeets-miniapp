@@ -1,4 +1,5 @@
-import { Avatar, Caption, Headline, IconButton, Section, Tooltip } from '@telegram-apps/telegram-ui';
+import { Caption, Headline, IconButton, Section, Tooltip } from '@telegram-apps/telegram-ui';
+import { MediaAvatar } from '@/components/MediaAvatar';
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
@@ -78,7 +79,7 @@ export const IndexPage: FC = () => {
             backgroundColor: themeParams.secondaryBackgroundColor(),
           }}
         >
-          <Avatar size={48} src={group.photoUrl} acronym={initials(group.name)} />
+          <MediaAvatar size={48} mediaId={group.photoMediaId} acronym={initials(group.name)} />
           <Headline weight="3">{group.name}</Headline>
           <div style={{
             display: 'flex',

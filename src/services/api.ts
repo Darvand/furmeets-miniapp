@@ -17,13 +17,24 @@ export function authBaseQuery(path: string) {
     return fetchBaseQuery({
         baseUrl: `${API_URL}${path}`,
         prepareHeaders: (headers) => {
-            const initData = getInitDataRaw();
-            if (initData) {
-                headers.set('Authorization', `tma ${initData}`);
-            }
+            setAuthorization(headers);
             return headers;
         },
     });
+}
+
+/** `fetch` autenticado contra la API, para lo que no pasa por RTK Query (p. ej. imágenes). */
+export function authFetch(path: string): Promise<Response> {
+    const headers = new Headers();
+    setAuthorization(headers);
+    return fetch(`${API_URL}${path}`, { headers });
+}
+
+function setAuthorization(headers: Headers): void {
+    const initData = getInitDataRaw();
+    if (initData) {
+        headers.set('Authorization', `tma ${initData}`);
+    }
 }
 
 /** Socket autenticado: la API valida `auth.initData` antes de aceptar la conexión. */

@@ -1,4 +1,5 @@
-import { Cell, List, Avatar, IconButton, Spinner, Badge, Modal, Text, Button } from '@telegram-apps/telegram-ui';
+import { Cell, List, IconButton, Spinner, Badge, Modal, Text, Button } from '@telegram-apps/telegram-ui';
+import { MediaAvatar } from '@/components/MediaAvatar';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
 import { Icon16Chevron, Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
@@ -186,9 +187,9 @@ export const RequestChatPage: FC = () => {
                             <IconButton mode='plain' onClick={handleNavigateBack}>
                                 <Icon24ChevronLeft size={24} />
                             </IconButton>
-                            <Avatar
+                            <MediaAvatar
                                 size={40}
-                                src={requestChat.requester.avatarUrl}
+                                mediaId={requestChat.requester.avatarMediaId}
                                 acronym={initials(requestChat.requester.name)}
                             />
                         </div>
@@ -270,7 +271,7 @@ export const RequestChatPage: FC = () => {
                                 <ChatBubble
                                     key={message.uuid}
                                     message={message.content}
-                                    avatarUrl={message.user.avatarUrl}
+                                    avatarMediaId={message.user.avatarMediaId}
                                     username={message.user.username!}
                                     isOwn={message.user.uuid === user?.uuid}
                                     time={message.sentAt}
