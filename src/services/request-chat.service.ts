@@ -1,8 +1,9 @@
 import { CreateRequestChatPayload, RequestChat, RequestChatItem, RequestChatVoteType } from "@/models/request-chat.model";
 import { setRequestChats } from "@/state/hub.slice";
 import { setRequestChat } from "@/state/request-chat.slice";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { retrieveLaunchParams } from "@telegram-apps/sdk-react";
+import { setOwnRequestChat } from "@/state/me.slice";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { authBaseQuery } from "./api";
 
 interface ListRequestChatResponse {
     items: RequestChatItem[];
@@ -10,18 +11,7 @@ interface ListRequestChatResponse {
 
 export const requestChatApi = createApi({
     reducerPath: 'requestChatApi',
-    baseQuery: fetchBaseQuery({
-        baseUrl: `${import.meta.env.VITE_API_URL}/request-chats`,
-        prepareHeaders: (headers) => {
-            const lp = retrieveLaunchParams();
-            const telegramId = lp.tgWebAppData?.user?.id;
-            if (telegramId) {
-                headers.set('x-telegram-id', telegramId.toString());
-            }
-
-            return headers;
-        },
-    }),
+    baseQuery: authBaseQuery('/request-chats'),
     endpoints: (builder) => ({
         getRequestChatById: builder.query<RequestChat, string>({
             query: (id: string) => `/${id}`,
@@ -57,6 +47,7 @@ export const requestChatApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setRequestChat(data));
+                    dispatch(setOwnRequestChat({ id: data.uuid, state: 'InProgress' }));
                 } catch (error) {
                     console.error('Error creating request chat:', error);
                 }
@@ -83,7 +74,6 @@ export const requestChatApi = createApi({
 export const {
     useGetRequestChatByIdQuery,
     useGetAllRequestChatsQuery,
-    useLazyGetAllRequestChatsQuery,
     useCreateRequestChatMutation,
     useVoteMutation,
 } = requestChatApi;

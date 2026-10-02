@@ -5,7 +5,10 @@ import { Icon16Chevron, Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tm
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { themeParams } from '@telegram-apps/sdk-react';
 import { ChatBubble } from '@/components/ChatBubble/ChatBubble';
-import { io, Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
+import { createSocket } from '@/services/api';
+import { setOwnRequestChat } from '@/state/me.slice';
+import { RequestChatState } from '@/models/me.model';
 import { useGetRequestChatByIdQuery, useVoteMutation } from '@/services/request-chat.service';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RequestChatMessage } from '@/models/request-chat-message.model';
@@ -42,7 +45,7 @@ export const RequestChatPage: FC = () => {
     };
 
     const authenticate = useCallback(() => {
-        const socket = io(`${import.meta.env.VITE_API_URL}`);
+        const socket = createSocket();
         setSocket(socket);
 
         socket.on('request-chat', (message: RequestChatMessage) => {
@@ -51,6 +54,8 @@ export const RequestChatPage: FC = () => {
 
         socket.on('request-chat-update', (requestChat: RequestChat) => {
             dispatch(setRequestChat(requestChat));
+            // Si es la propia solicitud, el estado nuevo también decide el enrutamiento.
+            dispatch(setOwnRequestChat({ id: requestChat.uuid, state: requestChat.state as RequestChatState }));
         })
 
         return socket;
@@ -67,9 +72,9 @@ export const RequestChatPage: FC = () => {
 
     const sendMessage = () => {
         if (socket && requestChat && user && messageContent.trim() !== '') {
+            // El autor lo decide la API con el initData del socket.
             socket.emit('request-chat', {
                 requestChatUUID: requestChat.uuid,
-                userUUID: user.uuid,
                 content: messageContent,
             });
             setMessageContent('');
