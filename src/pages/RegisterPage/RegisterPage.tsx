@@ -63,7 +63,7 @@ export const RegisterPage: FC = () => {
                     <List style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px' }}>
                         <Input header="¿De dónde nos conoces?" placeholder="Por facebook" value={whereYouFoundUs} onChange={e => setWhereYouFoundUs(e.target.value)} />
                         <Input header="¿Qué intereses tienes?" placeholder="Me gustan los videojuegos" value={interests} onChange={e => setInterests(e.target.value)} />
-                        <Button size="s" mode="filled" onClick={handleSubmit} disabled={isLoading}>
+                        <Button size="s" mode="filled" onClick={() => void handleSubmit()} disabled={isLoading}>
                             Enviar solicitud
                         </Button>
                     </List>
