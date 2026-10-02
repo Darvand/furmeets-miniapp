@@ -10,7 +10,7 @@ import { Socket } from "socket.io-client";
 import { createSocket } from '@/services/api';
 import { setOwnRequestChat } from '@/state/me.slice';
 import { RequestChatState } from '@/models/me.model';
-import { useGetRequestChatByIdQuery, useVoteMutation } from '@/services/request-chat.service';
+import { useGetRequestChatByIdQuery, useMarkAsReadMutation, useVoteMutation } from '@/services/request-chat.service';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RequestChatMessage } from '@/models/request-chat-message.model';
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,6 +31,7 @@ export const RequestChatPage: FC = () => {
     const requestChat = useSelector((state: RootState) => state.requestChat);
     const user = useSelector((state: RootState) => state.user);
     const [vote, { isLoading: isVoting }] = useVoteMutation();
+    const [markAsRead] = useMarkAsReadMutation();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [messageContent, setMessageContent] = useState<string>('');
     const [showModal, setShowModal] = useState<string>('');
@@ -71,6 +72,16 @@ export const RequestChatPage: FC = () => {
             socket.disconnect();
         };
     }, [authenticate]);
+
+    // Leídos: al abrir el chat y al salir (así cuenta también lo que llegó mientras estaba abierto).
+    useEffect(() => {
+        const id = params.uuid;
+        if (!id) return;
+        void markAsRead(id);
+        return () => {
+            void markAsRead(id);
+        };
+    }, [markAsRead, params.uuid]);
 
     const sendMessage = () => {
         if (socket && requestChat && user && messageContent.trim() !== '') {
