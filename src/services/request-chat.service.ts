@@ -12,7 +12,6 @@ interface ListRequestChatResponse {
 export const requestChatApi = createApi({
     reducerPath: 'requestChatApi',
     baseQuery: authBaseQuery('/request-chats'),
-    tagTypes: ['RequestChatList'],
     endpoints: (builder) => ({
         getRequestChatById: builder.query<RequestChat, string>({
             query: (id: string) => `/${id}`,
@@ -28,7 +27,6 @@ export const requestChatApi = createApi({
 
         getAllRequestChats: builder.query<ListRequestChatResponse, void>({
             query: () => `/`,
-            providesTags: ['RequestChatList'],
             async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
@@ -56,18 +54,6 @@ export const requestChatApi = createApi({
             },
         }),
 
-        /**
-         * Marca como leídos todos los mensajes de la solicitud. Abrirla (GET) ya no lo hace.
-         * Invalida el listado para que sus contadores de no leídos se actualicen.
-         */
-        markAsRead: builder.mutation<void, string>({
-            query: (id) => ({
-                url: `/${id}/read`,
-                method: 'POST',
-            }),
-            invalidatesTags: ['RequestChatList'],
-        }),
-
         vote: builder.mutation<RequestChat, { id: string; type: RequestChatVoteType }>({
             query: ({ id, type }) => ({
                 url: `/${id}/vote/${type}`,
@@ -90,5 +76,4 @@ export const {
     useGetAllRequestChatsQuery,
     useCreateRequestChatMutation,
     useVoteMutation,
-    useMarkAsReadMutation,
 } = requestChatApi;
