@@ -1,72 +1,28 @@
-import { Avatar, Caption, Headline, IconButton, Section, Tooltip } from '@telegram-apps/telegram-ui';
-import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
+import { Caption, Headline, IconButton, Section, Tooltip } from '@telegram-apps/telegram-ui';
+import { MediaAvatar } from '@/components/MediaAvatar';
+import { useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
-import { useLazyGetUserByTelegramUserQuery } from '@/services/user.service';
 import { useGetAllRequestChatsQuery } from '@/services/request-chat.service';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/state/store';
-import {
-  initDataRaw as _initDataRaw,
-  initDataState as _initDataState,
-  themeParams,
-  useSignal,
-} from '@telegram-apps/sdk-react';
+import { themeParams } from '@telegram-apps/sdk-react';
 import { LoadingPage } from '../LoadingPage';
-import { io, Socket } from 'socket.io-client';
-import { RequestChatMessage } from '@/models/request-chat-message.model';
 import { RequestChatList } from '@/components/RequestChatList/RequestChatList';
 import { FAQ } from '@/components/FAQ/FAQ';
 import { Icon20QuestionMark } from 'tmaui/icons';
+import { initials } from '@/helpers/text';
 
 export const IndexPage: FC = () => {
   const navigate = useNavigate();
-  const initDataState = useSignal(_initDataState);
-  const [isRequester] = useState(false);
-  const { isLoading: isRequestChatsLoading, refetch } = useGetAllRequestChatsQuery();
-  const requestChats = useSelector((state: RootState) => state.hub.requestChats);
+  // Solo se llega aquí como miembro. El listado se pide una vez y después lo mantienen al
+  // día los eventos del socket compartido (`live-updates.ts`), sin recargarlo.
+  const { data, isLoading: isRequestChatsLoading } = useGetAllRequestChatsQuery();
+  const requestChats = useMemo(() => data?.items ?? [], [data]);
   const user = useSelector((state: RootState) => state.user);
   const group = useSelector((state: RootState) => state.hub.group);
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [toolTipRef, setToolTipRef] = useState<HTMLElement | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const authenticate = useCallback(() => {
-    const socket = io(`${import.meta.env.VITE_API_URL}`);
-    setSocket(socket);
-
-    socket.on('request-chat', (_: RequestChatMessage) => {
-      refetch();
-    })
-
-    socket.on('request-chat-update', (_: RequestChatMessage) => {
-      refetch();
-    });
-
-    socket.on('new-request-chat', (_: RequestChatMessage) => {
-      refetch();
-    });
-
-    return socket;
-  }, []);
-
-  useEffect(() => {
-    const socket = authenticate();
-    return () => {
-      socket.disconnect();
-    };
-  }, [authenticate]);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  const telegramUserId = initDataState?.user?.id || 1;
-  const [getUserByTelegramUser, { isLoading: isGettingUser }] = useLazyGetUserByTelegramUserQuery();
-
-  const isLoading = useMemo(() => {
-    return isGettingUser || isRequestChatsLoading || !socket;
-  }, [isGettingUser, isRequestChatsLoading, socket]);
-
   const requestChatsInProgress = useMemo(() => {
     return requestChats.filter(rc => rc.state === 'InProgress');
   }, [requestChats]);
@@ -75,18 +31,11 @@ export const IndexPage: FC = () => {
     return requestChats.filter(rc => rc.state !== 'InProgress');
   }, [requestChats]);
 
-  useEffect(() => {
-    if (isRequester) {
-      getUserByTelegramUser({ id: 123456789 } as any);
-    } else {
-      getUserByTelegramUser(initDataState!.user!);
-    }
-  }, [isRequester, telegramUserId, getUserByTelegramUser]);
   const handleNavigateToChat = (requestChatId: string) => {
     navigate(`/request-chat/${requestChatId}`);
   };
 
-  if (!user || isLoading || !group) {
+  if (!user || isRequestChatsLoading || !group) {
     return (
       <Page back={false}>
         <LoadingPage />
@@ -119,7 +68,7 @@ export const IndexPage: FC = () => {
             backgroundColor: themeParams.secondaryBackgroundColor(),
           }}
         >
-          <Avatar size={48} src={group.photoUrl} />
+          <MediaAvatar size={48} mediaId={group.photoMediaId} acronym={initials(group.name)} />
           <Headline weight="3">{group.name}</Headline>
           <div style={{
             display: 'flex',

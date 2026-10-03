@@ -1,7 +1,9 @@
-import { wrapLastText } from "@/helpers/text";
+import { initials, wrapLastText } from "@/helpers/text";
+import { formatChatTime } from "@/helpers/date";
 import { RequestChatItem } from "@/models/request-chat.model";
 import { themeParams } from "@telegram-apps/sdk-react";
-import { Accordion, Avatar, Badge, Caption, Cell, List } from "@telegram-apps/telegram-ui";
+import { Accordion, Caption, Cell, List } from "@telegram-apps/telegram-ui";
+import { MediaAvatar } from "@/components/MediaAvatar";
 import { AccordionContent } from "@telegram-apps/telegram-ui/dist/components/Blocks/Accordion/components/AccordionContent/AccordionContent";
 import { AccordionSummary } from "@telegram-apps/telegram-ui/dist/components/Blocks/Accordion/components/AccordionSummary/AccordionSummary";
 import { useState } from "react";
@@ -37,21 +39,19 @@ export const RequestChatList: React.FC<RequestChatListProps> = ({ requestChats, 
                                 margin: '-12px 0',
                                 gap: '12px'
                             }}
-                            before={<Avatar
+                            before={<MediaAvatar
                                 size={40}
-                                src={chat.requester.avatarUrl}
+                                mediaId={chat.requester.avatarMediaId}
+                                acronym={initials(chat.requester.name)}
                             />}
-                            subtitle={
+                            subtitle={chat.lastMessage && (
                                 <div>
                                     <Caption style={{ color: themeParams.accentTextColor() }}>{chat.lastMessage.from.name}: </Caption>
                                     <Caption>{wrapLastText(30, chat.lastMessage.from.name, chat.lastMessage.content)}</Caption>
                                 </div>
-                            }
+                            )}
                             after={
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <Caption>{chat.lastMessage.at}</Caption>
-                                    <Badge mode="gray" type="number">{chat.unreadMessagesCount}</Badge>
-                                </div>
+                                chat.lastMessage && <Caption>{formatChatTime(chat.lastMessage.at)}</Caption>
                             }
                             onClick={() => onSelect(chat)}
                         >

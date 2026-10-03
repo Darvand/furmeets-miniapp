@@ -5,16 +5,31 @@ export type RequestChatVoteType = 'approve' | 'reject';
 
 export interface RequestChatItem {
     uuid: string;
-    unreadMessagesCount: number;
-    lastMessage: {
+    /** Falta si la solicitud no tiene mensajes. */
+    lastMessage?: {
+        /** ISO-8601 UTC (ver `formatChatTime`). */
         at: string;
         content: string;
         from: User;
     };
     requester: User;
-    createdAt: Date;
+    /** ISO-8601 UTC. */
+    createdAt: string;
     state: string;
+    votes: RequestChatVotes;
+    userVote?: RequestChatVoteType;
+}
 
+export interface RequestChatVotes {
+    approved: number;
+    rejected: number;
+}
+
+/** Evento `request-chat-votes` (solo miembros): estado y conteos, sin el voto de nadie. */
+export interface RequestChatVotesEvent {
+    uuid: string;
+    state: string;
+    votes: RequestChatVotes;
 }
 
 export interface RequestChatList {
@@ -33,11 +48,18 @@ export interface RequestChat {
     messages: RequestChatMessage[];
     whereYouFoundUs?: string;
     interests?: string;
-    createdAt: Date;
     state: string;
-    votes: {
-        approved: number;
-        rejected: number;
-    };
+    votes: RequestChatVotes;
+    userVote?: RequestChatVoteType;
+}
+
+/**
+ * Respuesta de un voto: solo estado y conteos. Si el voto cerró la solicitud, la
+ * solicitud con el mensaje de cierre llega después por `request-chat-update`.
+ */
+export interface RequestChatVoteResult {
+    uuid: string;
+    state: string;
+    votes: RequestChatVotes;
     userVote?: RequestChatVoteType;
 }

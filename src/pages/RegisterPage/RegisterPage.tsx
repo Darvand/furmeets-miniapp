@@ -1,20 +1,19 @@
 import { Page } from "@/components/Page";
 import { RootState } from "@/state/store";
 import { themeParams } from "@telegram-apps/sdk-react";
-import { Avatar, Blockquote, Button, Caption, Divider, Input, List, Section, Title } from "@telegram-apps/telegram-ui";
-import { FC, useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { Blockquote, Button, Caption, Divider, Input, List, Section, Title } from "@telegram-apps/telegram-ui";
+import { MediaAvatar } from "@/components/MediaAvatar";
+import { FC, useState } from "react";
+import { useSelector } from "react-redux";
 import { Icon24Channel } from "tmaui/icons";
 import { LoadingPage } from "../LoadingPage";
 import { useCreateRequestChatMutation } from "@/services/request-chat.service";
-import { setRequestChat } from "@/state/request-chat.slice";
 import { useNavigate } from "react-router-dom";
+import { initials } from "@/helpers/text";
 
 export const RegisterPage: FC = () => {
     const user = useSelector((state: RootState) => state.user);
     const group = useSelector((state: RootState) => state.hub.group);
-    const requestChats = useSelector((state: RootState) => state.hub.requestChats);
-    const dispatch = useDispatch();
     const navigate = useNavigate();
 
     const [createRequestChat, { isLoading }] = useCreateRequestChatMutation();
@@ -24,26 +23,18 @@ export const RegisterPage: FC = () => {
 
     const handleSubmit = async () => {
         if (!user) return;
+        // El servicio guarda la solicitud y la registra como propia (`me.requestChatId`).
         const requestChat = await createRequestChat({
             requesterUUID: user.uuid,
             whereYouFoundUs: whereYouFoundUs || undefined,
             interests: interests || undefined,
         }).unwrap();
-        dispatch(setRequestChat(requestChat));
         navigate(`/request-chat/${requestChat.uuid}`, { replace: true });
     }
 
     if (!user || !group) {
         return (<LoadingPage />);
     }
-    const requestChat = useMemo(() => {
-        return requestChats.find(rc => rc.requester.uuid === user.uuid);
-    }, [requestChats, user]);
-    useEffect(() => {
-        if (requestChat) {
-            navigate(`/request-chat/${requestChat.uuid}`, { replace: true });
-        }
-    }, [requestChat, navigate]);
     return (
         <Page back={true}>
             <Section>
@@ -56,7 +47,7 @@ export const RegisterPage: FC = () => {
                         padding: '32px 16px',
                     }}
                 >
-                    <Avatar size={96} src={group.photoUrl} />
+                    <MediaAvatar size={96} mediaId={group.photoMediaId} acronym={initials(group.name)} />
                     <Title weight="1">{group.name}</Title>
                     <Caption style={{ color: themeParams.subtitleTextColor() }}>{group.description}</Caption>
                     <Divider />
@@ -73,7 +64,7 @@ export const RegisterPage: FC = () => {
                     <List style={{ display: 'flex', flexDirection: 'column', padding: '16px 16px' }}>
                         <Input header="¿De dónde nos conoces?" placeholder="Por facebook" value={whereYouFoundUs} onChange={e => setWhereYouFoundUs(e.target.value)} />
                         <Input header="¿Qué intereses tienes?" placeholder="Me gustan los videojuegos" value={interests} onChange={e => setInterests(e.target.value)} />
-                        <Button size="s" mode="filled" onClick={handleSubmit} disabled={isLoading}>
+                        <Button size="s" mode="filled" onClick={() => void handleSubmit()} disabled={isLoading}>
                             Enviar solicitud
                         </Button>
                     </List>

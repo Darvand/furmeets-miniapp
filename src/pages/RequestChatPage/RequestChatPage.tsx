@@ -1,32 +1,37 @@
-import { Cell, List, Avatar, IconButton, Spinner, Badge, Modal, Text, Button } from '@telegram-apps/telegram-ui';
+import { Cell, List, IconButton, Spinner, Badge, Modal, Text, Button } from '@telegram-apps/telegram-ui';
+import { MediaAvatar } from '@/components/MediaAvatar';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
 import { Icon16Chevron, Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { themeParams } from '@telegram-apps/sdk-react';
 import { ChatBubble } from '@/components/ChatBubble/ChatBubble';
-import { io, Socket } from "socket.io-client";
 import { useGetRequestChatByIdQuery, useVoteMutation } from '@/services/request-chat.service';
 import { useNavigate, useParams } from 'react-router-dom';
-import { RequestChatMessage } from '@/models/request-chat-message.model';
 import { useDispatch, useSelector } from 'react-redux';
-import { addMessage, setRequestChat } from '@/state/request-chat.slice';
-import { RootState } from '@/state/store';
-import { RequestChat } from '@/models/request-chat.model';
-import { wrapLastText } from '@/helpers/text';
+import { AppDispatch, RootState } from '@/state/store';
+import { retryMessage, sendMessage as sendOptimistic } from '@/services/live-updates';
+import { initials, wrapLastText } from '@/helpers/text';
+import { formatChatTime } from '@/helpers/date';
 
 export const RequestChatPage: FC = () => {
     const params = useParams<{ uuid: string }>();
+    // Se pide al abrir; después lo mantienen al día los eventos del socket compartido.
     const {
+        data: requestChat,
         isError,
         isLoading,
         refetch,
     } = useGetRequestChatByIdQuery(params.uuid!);
-    const dispatch = useDispatch();
-    const requestChat = useSelector((state: RootState) => state.requestChat);
+    const dispatch = useDispatch<AppDispatch>();
     const user = useSelector((state: RootState) => state.user);
+    const outbox = useSelector((state: RootState) => state.outbox);
+    // Mensajes propios aún sin confirmar de este chat, al final.
+    const pending = useMemo(
+        () => outbox.filter((m) => m.requestChatUUID === params.uuid),
+        [outbox, params.uuid],
+    );
     const [vote, { isLoading: isVoting }] = useVoteMutation();
-    const [socket, setSocket] = useState<Socket | null>(null);
     const [messageContent, setMessageContent] = useState<string>('');
     const [showModal, setShowModal] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -41,52 +46,26 @@ export const RequestChatPage: FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    const authenticate = useCallback(() => {
-        const socket = io(`${import.meta.env.VITE_API_URL}`);
-        setSocket(socket);
-
-        socket.on('request-chat', (message: RequestChatMessage) => {
-            dispatch(addMessage(message));
-        })
-
-        socket.on('request-chat-update', (requestChat: RequestChat) => {
-            dispatch(setRequestChat(requestChat));
-        })
-
-        return socket;
-    }, [dispatch]);
-
-    useEffect(() => {
-        const socket = authenticate();
-        scrollToBottom();
-
-        return () => {
-            socket.disconnect();
-        };
-    }, [authenticate]);
-
     const sendMessage = () => {
-        if (socket && requestChat && user && messageContent.trim() !== '') {
-            socket.emit('request-chat', {
-                requestChatUUID: requestChat.uuid,
-                userUUID: user.uuid,
-                content: messageContent,
-            });
+        if (requestChat && messageContent.trim() !== '') {
+            // Aparece al instante como "enviando"; el autor lo decide la API con el initData.
+            dispatch(sendOptimistic(requestChat.uuid, messageContent));
             setMessageContent('');
             scrollToBottom();
         }
     };
 
+    // El voto se ve al instante (optimista); si la API lo rechaza, se revierte solo.
     const handleApprove = () => {
         if (requestChat && !isVoting) {
-            vote({ id: requestChat.uuid, type: 'approve' });
+            void vote({ id: requestChat.uuid, type: 'approve' });
             setShowModal('');
         }
     }
 
     const handleReject = () => {
         if (requestChat && !isVoting) {
-            vote({ id: requestChat.uuid, type: 'reject' });
+            void vote({ id: requestChat.uuid, type: 'reject' });
             setShowModal('');
         }
     }
@@ -100,10 +79,8 @@ export const RequestChatPage: FC = () => {
     }, [requestChat, isRequesterTheViewer]);
 
     useEffect(() => {
-        if (requestChat) {
-            scrollToBottom();
-        }
-    }, [requestChat?.messages]);
+        scrollToBottom();
+    }, [requestChat?.messages, pending.length]);
 
     if (isLoading || !requestChat) {
         return <Page back={true}>
@@ -119,7 +96,7 @@ export const RequestChatPage: FC = () => {
         </Page>;
     }
     if (isError) {
-        return <Page back={true}>Error loading chat. <button onClick={() => refetch()}>Retry</button></Page>;
+        return <Page back={true}>Error loading chat. <button onClick={() => void refetch()}>Retry</button></Page>;
     }
 
     return (
@@ -143,28 +120,22 @@ export const RequestChatPage: FC = () => {
                         alignItems: 'center',
                         gap: '16px',
                     }}>
-                        {isVoting ? (
-                            <Spinner size='m' />
-                        ) : (
-                            <>
-                                {
-                                    !!requestChat.userVote ? (
-                                        <Text>Estás a punto de retirar tu voto</Text>
-                                    ) : (
-                                        <Text>Estás a punto de {showModal === 'approve' ? 'aceptar' : 'rechazar'} al solicitante</Text>
-                                    )
-                                }
-                                <div style={{
-                                    display: 'flex',
-                                    gap: '8px',
-                                }}>
-                                    <Button mode='gray' onClick={() => setShowModal('')}>Cancelar</Button>
-                                    <Button onClick={showModal === 'approve' ? handleApprove : handleReject}>
-                                        Entendido
-                                    </Button>
-                                </div>
-                            </>
-                        )}
+                        {
+                            requestChat.userVote === showModal ? (
+                                <Text>Estás a punto de retirar tu voto</Text>
+                            ) : (
+                                <Text>Estás a punto de {showModal === 'approve' ? 'aceptar' : 'rechazar'} al solicitante</Text>
+                            )
+                        }
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                        }}>
+                            <Button mode='gray' onClick={() => setShowModal('')}>Cancelar</Button>
+                            <Button onClick={showModal === 'approve' ? handleApprove : handleReject}>
+                                Entendido
+                            </Button>
+                        </div>
                     </div>
                 </Modal>
                 <Cell
@@ -181,9 +152,10 @@ export const RequestChatPage: FC = () => {
                             <IconButton mode='plain' onClick={handleNavigateBack}>
                                 <Icon24ChevronLeft size={24} />
                             </IconButton>
-                            <Avatar
+                            <MediaAvatar
                                 size={40}
-                                src={requestChat.requester.avatarUrl}
+                                mediaId={requestChat.requester.avatarMediaId}
+                                acronym={initials(requestChat.requester.name)}
                             />
                         </div>
                     }
@@ -264,13 +236,25 @@ export const RequestChatPage: FC = () => {
                                 <ChatBubble
                                     key={message.uuid}
                                     message={message.content}
-                                    avatarUrl={message.user.avatarUrl}
+                                    avatarMediaId={message.user.avatarMediaId}
                                     username={message.user.username!}
                                     isOwn={message.user.uuid === user?.uuid}
-                                    time={message.sentAt}
+                                    time={formatChatTime(message.sentAt)}
                                 />
                             )
                         })}
+                        {user && pending.map((message) => (
+                            <ChatBubble
+                                key={message.clientMessageId}
+                                message={message.content}
+                                avatarMediaId={user.avatarMediaId}
+                                username={user.username ?? user.name}
+                                isOwn
+                                time={formatChatTime(message.sentAt)}
+                                status={message.status}
+                                onRetry={() => dispatch(retryMessage(message.clientMessageId))}
+                            />
+                        ))}
                         <div ref={messagesEndRef} />
                     </List>
                 </div>

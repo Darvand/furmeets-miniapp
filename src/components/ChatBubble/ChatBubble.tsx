@@ -1,27 +1,34 @@
 import { themeParams } from "@telegram-apps/sdk-react";
-import { Avatar, Caption } from "@telegram-apps/telegram-ui";
+import { Caption } from "@telegram-apps/telegram-ui";
 import { FC } from "react";
+import { initials } from "@/helpers/text";
+import { MediaAvatar } from "@/components/MediaAvatar";
 
 interface ChatBubbleProps {
     message: string;
     username: string;
     time: string;
-    avatarUrl?: string;
+    avatarMediaId?: string;
     isOwn?: boolean;
+    /** Mensaje propio sin confirmar (ver `OutboxMessage`). */
+    status?: 'sending' | 'failed';
+    onRetry?: () => void;
 }
 
-export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarUrl, isOwn }) => {
+export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarMediaId, isOwn, status, onRetry }) => {
     return (
         <div
             style={{
                 display: 'flex',
                 alignItems: 'flex-end',
                 marginBottom: '12px',
+                opacity: status === 'sending' ? 0.7 : 1,
             }}
         >
-            <Avatar
+            <MediaAvatar
                 size={40}
-                src={avatarUrl || "https://avatars.githubusercontent.com/u/84640980?v=4"}
+                mediaId={avatarMediaId}
+                acronym={initials(username)}
             />
             <div
                 style={{
@@ -37,7 +44,26 @@ export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avata
             >
                 <Caption weight='1'>{username}</Caption>
                 <Caption>{message}</Caption>
-                <Caption weight='3' level='2' style={{ alignSelf: 'flex-end' }}>{time}</Caption>
+                {status === 'failed' ? (
+                    <button
+                        type="button"
+                        onClick={onRetry}
+                        style={{
+                            alignSelf: 'flex-end',
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            color: themeParams.destructiveTextColor(),
+                        }}
+                    >
+                        <Caption weight='2' level='2'>No enviado · Reintentar</Caption>
+                    </button>
+                ) : (
+                    <Caption weight='3' level='2' style={{ alignSelf: 'flex-end' }}>
+                        {status === 'sending' ? 'Enviando…' : time}
+                    </Caption>
+                )}
             </div>
         </div>
     );
