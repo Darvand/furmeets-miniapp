@@ -1,6 +1,6 @@
-import { CreateRequestChatPayload, RequestChat, RequestChatItem, RequestChatVoteType } from "@/models/request-chat.model";
+import { CreateRequestChatPayload, RequestChat, RequestChatItem, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
 import { setRequestChats } from "@/state/hub.slice";
-import { setRequestChat } from "@/state/request-chat.slice";
+import { applyVoteResult, setRequestChat } from "@/state/request-chat.slice";
 import { setOwnRequestChat } from "@/state/me.slice";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { authBaseQuery } from "./api";
@@ -54,7 +54,7 @@ export const requestChatApi = createApi({
             },
         }),
 
-        vote: builder.mutation<RequestChat, { id: string; type: RequestChatVoteType }>({
+        vote: builder.mutation<RequestChatVoteResult, { id: string; type: RequestChatVoteType }>({
             query: ({ id, type }) => ({
                 url: `/${id}/vote/${type}`,
                 method: 'PUT',
@@ -62,7 +62,7 @@ export const requestChatApi = createApi({
             async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(setRequestChat(data));
+                    dispatch(applyVoteResult(data));
                 } catch (error) {
                     console.error('Error voting on request chat:', error);
                 }
