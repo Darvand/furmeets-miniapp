@@ -6,5 +6,4 @@ export interface RequestChatMessage {
     content: string;
     /** ISO-8601 UTC (ver `formatChatTime`). */
     sentAt: string;
-    viewedByRequester: boolean;
 }
