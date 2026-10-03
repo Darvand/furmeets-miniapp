@@ -1,6 +1,6 @@
 import { Caption, Headline, IconButton, Section, Tooltip } from '@telegram-apps/telegram-ui';
 import { MediaAvatar } from '@/components/MediaAvatar';
-import { useEffect, useMemo, useState, type FC } from 'react';
+import { useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Page.tsx';
 import { useGetAllRequestChatsQuery } from '@/services/request-chat.service';
@@ -8,7 +8,6 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/state/store';
 import { themeParams } from '@telegram-apps/sdk-react';
 import { LoadingPage } from '../LoadingPage';
-import { createSocket } from '@/services/api';
 import { RequestChatList } from '@/components/RequestChatList/RequestChatList';
 import { FAQ } from '@/components/FAQ/FAQ';
 import { Icon20QuestionMark } from 'tmaui/icons';
@@ -16,27 +15,14 @@ import { initials } from '@/helpers/text';
 
 export const IndexPage: FC = () => {
   const navigate = useNavigate();
-  // Solo se llega aquí como miembro: el listado se pide al montar, una sola vez.
-  // Al volver de un chat, el listado se pide de nuevo para traer el último mensaje.
-  const { isLoading: isRequestChatsLoading, refetch } = useGetAllRequestChatsQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
-  const requestChats = useSelector((state: RootState) => state.hub.requestChats);
+  // Solo se llega aquí como miembro. El listado se pide una vez y después lo mantienen al
+  // día los eventos del socket compartido (`live-updates.ts`), sin recargarlo.
+  const { data, isLoading: isRequestChatsLoading } = useGetAllRequestChatsQuery();
+  const requestChats = useMemo(() => data?.items ?? [], [data]);
   const user = useSelector((state: RootState) => state.user);
   const group = useSelector((state: RootState) => state.hub.group);
   const [toolTipRef, setToolTipRef] = useState<HTMLElement | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  // Actualiza el listado cuando hay actividad (T42 lo cambia por parches sin recargar).
-  useEffect(() => {
-    const socket = createSocket();
-    socket.on('request-chat', () => refetch());
-    socket.on('request-chat-update', () => refetch());
-    socket.on('new-request-chat', () => refetch());
-    return () => {
-      socket.disconnect();
-    };
-  }, [refetch]);
-
   const requestChatsInProgress = useMemo(() => {
     return requestChats.filter(rc => rc.state === 'InProgress');
   }, [requestChats]);

@@ -10,15 +10,19 @@ interface ChatBubbleProps {
     time: string;
     avatarMediaId?: string;
     isOwn?: boolean;
+    /** Mensaje propio sin confirmar (ver `OutboxMessage`). */
+    status?: 'sending' | 'failed';
+    onRetry?: () => void;
 }
 
-export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarMediaId, isOwn }) => {
+export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avatarMediaId, isOwn, status, onRetry }) => {
     return (
         <div
             style={{
                 display: 'flex',
                 alignItems: 'flex-end',
                 marginBottom: '12px',
+                opacity: status === 'sending' ? 0.7 : 1,
             }}
         >
             <MediaAvatar
@@ -40,7 +44,26 @@ export const ChatBubble: FC<ChatBubbleProps> = ({ message, username, time, avata
             >
                 <Caption weight='1'>{username}</Caption>
                 <Caption>{message}</Caption>
-                <Caption weight='3' level='2' style={{ alignSelf: 'flex-end' }}>{time}</Caption>
+                {status === 'failed' ? (
+                    <button
+                        type="button"
+                        onClick={onRetry}
+                        style={{
+                            alignSelf: 'flex-end',
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            color: themeParams.destructiveTextColor(),
+                        }}
+                    >
+                        <Caption weight='2' level='2'>No enviado · Reintentar</Caption>
+                    </button>
+                ) : (
+                    <Caption weight='3' level='2' style={{ alignSelf: 'flex-end' }}>
+                        {status === 'sending' ? 'Enviando…' : time}
+                    </Caption>
+                )}
             </div>
         </div>
     );
