@@ -42,3 +42,17 @@ export interface RequestChat {
     };
     userVote?: RequestChatVoteType;
 }
+
+/**
+ * Respuesta de un voto: solo estado y conteos. Si el voto cerró la solicitud, la
+ * solicitud con el mensaje de cierre llega después por `request-chat-update`.
+ */
+export interface RequestChatVoteResult {
+    uuid: string;
+    state: string;
+    votes: {
+        approved: number;
+        rejected: number;
+    };
+    userVote?: RequestChatVoteType;
+}
