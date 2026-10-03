@@ -1,8 +1,8 @@
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { Navigate, Route, Routes, HashRouter } from 'react-router-dom';
 import { retrieveLaunchParams, useSignal, isMiniAppDark } from '@telegram-apps/sdk-react';
 import { AppRoot, Spinner } from '@telegram-apps/telegram-ui';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { routes } from '@/navigation/routes.tsx';
 import { homePathFor } from '@/navigation/role-home';
@@ -11,7 +11,8 @@ import { LoadingPage } from '@/pages/LoadingPage';
 import { StartupErrorPage } from '@/pages/StartupErrorPage';
 import { useGetMeQuery } from '@/services/me.service';
 import { useGetGroupQuery } from '@/services/group.service';
-import { RootState } from '@/state/store';
+import { AppDispatch, RootState } from '@/state/store';
+import { startLiveUpdates } from '@/services/live-updates';
 
 /** Mientras se descarga el chunk de la página (rutas con `React.lazy`). */
 function PageChunkFallback() {
@@ -31,6 +32,16 @@ export function App() {
   // Inicio y Formulario), así que se pide en paralelo y no en cadena.
   const { isError, isFetching, refetch } = useGetMeQuery();
   useGetGroupQuery();
+
+  // Un solo socket para toda la App, desde que se sabe quién es (la API decide sus salas).
+  const dispatch = useDispatch<AppDispatch>();
+  const isKnown = me !== null;
+  useEffect(() => {
+    if (!isKnown) {
+      return;
+    }
+    return startLiveUpdates(dispatch);
+  }, [isKnown, dispatch]);
 
   let content;
   if (me) {

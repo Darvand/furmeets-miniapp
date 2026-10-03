@@ -13,9 +13,23 @@ export interface RequestChatItem {
         from: User;
     };
     requester: User;
-    createdAt: Date;
+    /** ISO-8601 UTC. */
+    createdAt: string;
     state: string;
+    votes: RequestChatVotes;
+    userVote?: RequestChatVoteType;
+}
 
+export interface RequestChatVotes {
+    approved: number;
+    rejected: number;
+}
+
+/** Evento `request-chat-votes` (solo miembros): estado y conteos, sin el voto de nadie. */
+export interface RequestChatVotesEvent {
+    uuid: string;
+    state: string;
+    votes: RequestChatVotes;
 }
 
 export interface RequestChatList {
@@ -34,12 +48,8 @@ export interface RequestChat {
     messages: RequestChatMessage[];
     whereYouFoundUs?: string;
     interests?: string;
-    createdAt: Date;
     state: string;
-    votes: {
-        approved: number;
-        rejected: number;
-    };
+    votes: RequestChatVotes;
     userVote?: RequestChatVoteType;
 }
 
@@ -50,9 +60,6 @@ export interface RequestChat {
 export interface RequestChatVoteResult {
     uuid: string;
     state: string;
-    votes: {
-        approved: number;
-        rejected: number;
-    };
+    votes: RequestChatVotes;
     userVote?: RequestChatVoteType;
 }

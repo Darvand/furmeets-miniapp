@@ -1,11 +1,11 @@
 import { requestChatApi } from "@/services/request-chat.service";
 import { configureStore } from "@reduxjs/toolkit";
-import { requestChatReducer } from "./request-chat.slice";
 import { userReducer } from "./user.slice";
 import { meApi } from "@/services/me.service";
 import { meReducer } from "./me.slice";
 import { hubReducer } from "./hub.slice";
 import { groupApi } from "@/services/group.service";
+import { outboxReducer } from "./outbox.slice";
 
 
 export const store = configureStore({
@@ -13,7 +13,7 @@ export const store = configureStore({
         [requestChatApi.reducerPath]: requestChatApi.reducer,
         [meApi.reducerPath]: meApi.reducer,
         [groupApi.reducerPath]: groupApi.reducer,
-        requestChat: requestChatReducer,
+        outbox: outboxReducer,
         user: userReducer,
         me: meReducer,
         hub: hubReducer,
