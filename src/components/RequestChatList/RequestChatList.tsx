@@ -2,7 +2,7 @@ import { initials, wrapLastText } from "@/helpers/text";
 import { formatChatTime } from "@/helpers/date";
 import { RequestChatItem } from "@/models/request-chat.model";
 import { themeParams } from "@telegram-apps/sdk-react";
-import { Accordion, Badge, Caption, Cell, List } from "@telegram-apps/telegram-ui";
+import { Accordion, Caption, Cell, List } from "@telegram-apps/telegram-ui";
 import { MediaAvatar } from "@/components/MediaAvatar";
 import { AccordionContent } from "@telegram-apps/telegram-ui/dist/components/Blocks/Accordion/components/AccordionContent/AccordionContent";
 import { AccordionSummary } from "@telegram-apps/telegram-ui/dist/components/Blocks/Accordion/components/AccordionSummary/AccordionSummary";
@@ -51,10 +51,7 @@ export const RequestChatList: React.FC<RequestChatListProps> = ({ requestChats, 
                                 </div>
                             )}
                             after={
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {chat.lastMessage && <Caption>{formatChatTime(chat.lastMessage.at)}</Caption>}
-                                    <Badge mode="gray" type="number">{chat.unreadMessagesCount}</Badge>
-                                </div>
+                                chat.lastMessage && <Caption>{formatChatTime(chat.lastMessage.at)}</Caption>
                             }
                             onClick={() => onSelect(chat)}
                         >

@@ -17,7 +17,10 @@ import { initials } from '@/helpers/text';
 export const IndexPage: FC = () => {
   const navigate = useNavigate();
   // Solo se llega aquí como miembro: el listado se pide al montar, una sola vez.
-  const { isLoading: isRequestChatsLoading, refetch } = useGetAllRequestChatsQuery();
+  // Al volver de un chat, el listado se pide de nuevo para traer el último mensaje.
+  const { isLoading: isRequestChatsLoading, refetch } = useGetAllRequestChatsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const requestChats = useSelector((state: RootState) => state.hub.requestChats);
   const user = useSelector((state: RootState) => state.user);
   const group = useSelector((state: RootState) => state.hub.group);
