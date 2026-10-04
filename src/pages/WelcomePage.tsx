@@ -45,8 +45,7 @@ export const WelcomePage: FC = () => {
                     <Caption style={{ color: themeParams.subtitleTextColor() }}>Hola, {user?.name}</Caption>
                     <Title weight="1">Te estábamos esperando</Title>
                     <Text style={{ color: themeParams.subtitleTextColor() }}>
-                        FurMeets es la comunidad furry más grande de Medellín: meets, artistas y gente con la
-                        que da gusto hablar.
+                        FurMeets es la comunidad furry más grande de Medellín: meets, artistas y videojuegos.
                     </Text>
                 </div>
                 <Section>

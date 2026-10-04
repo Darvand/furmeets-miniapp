@@ -2,7 +2,7 @@ import { MediaAvatar } from "@/components/MediaAvatar";
 import { Page } from "@/components/Page";
 import { StepProgress } from "@/components/StepProgress";
 import { initials } from "@/helpers/text";
-import { ADULT_AGE, ApplicationPayload } from "@/models/application.model";
+import { ApplicationPayload } from "@/models/application.model";
 import { meApi } from "@/services/me.service";
 import { useSubmitApplicationMutation } from "@/services/request-chat.service";
 import { AppDispatch, RootState } from "@/state/store";
@@ -21,28 +21,12 @@ const MAX_AGE = 120;
 type TextField = Exclude<keyof ApplicationPayload, 'imageIds' | 'age'>;
 
 /** Etiqueta propia: el `header` de telegram-ui no se muestra en iOS. */
-const Field: FC<{ id: string; label: string; hint?: ReactNode; children: ReactNode }> = ({ id, label, hint, children }) => (
+const Field: FC<{ id: string; label: string; children: ReactNode }> = ({ id, label, children }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0' }}>
         <label htmlFor={id} style={{ padding: '0 22px' }}>
             <Caption style={{ color: themeParams.subtitleTextColor() }}>{label}</Caption>
         </label>
         {children}
-        {hint && <div style={{ padding: '0 22px' }}>{hint}</div>}
-    </div>
-);
-
-const Notice: FC<{ tone: 'info' | 'warning'; children: ReactNode }> = ({ tone, children }) => (
-    <div style={{
-        display: 'flex', gap: '8px', alignItems: 'flex-start', margin: '4px 16px', padding: '10px 12px', borderRadius: '8px',
-        background: tone === 'warning' ? 'rgba(226, 164, 92, 0.16)' : themeParams.secondaryBackgroundColor(),
-    }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px' }}
-            stroke={tone === 'warning' ? '#c27c2c' : themeParams.accentTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {tone === 'warning'
-                ? <><path d="M12 4.5 21 19H3z" /><path d="M12 10v4" /><path d="M12 16.5h.01" /></>
-                : <><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 8h.01" /></>}
-        </svg>
-        <Text style={{ fontSize: '14px', lineHeight: '19px' }}>{children}</Text>
     </div>
 );
 
@@ -147,20 +131,11 @@ export const RegisterPage: FC = () => {
             </Section>
 
             <Section header="Sobre ti">
-                <Field id="f-age" label="Edad" hint={
-                    <Caption style={{ color: themeParams.subtitleTextColor() }}>
-                        Si eres menor de edad puedes aplicar igual; el grupo solo necesita saberlo.
-                    </Caption>
-                }>
+                <Field id="f-age" label="Edad">
                     <Input id="f-age" type="number" inputMode="numeric" min={1} max={MAX_AGE} placeholder="22"
                         value={ageText} onChange={(e) => setAgeText(e.target.value)}
                         status={ageText && !age ? 'error' : 'default'} />
                 </Field>
-                {age !== undefined && age < ADULT_AGE && (
-                    <Notice tone="warning">
-                        Tu solicitud se marcará con la etiqueta <b>Menor de edad</b>, visible para el grupo.
-                    </Notice>
-                )}
                 <Field id="f-city" label="Ciudad">
                     <Input {...text('city')} placeholder="Medellín" maxLength={SHORT_TEXT} />
                 </Field>
@@ -182,10 +157,6 @@ export const RegisterPage: FC = () => {
             </Section>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0 24px' }}>
-                <Notice tone="info">
-                    El envío es definitivo: no podrás editar la solicitud después. Los mensajes que escribas en tu
-                    chat se comparten en el grupo de FurMeets.
-                </Notice>
                 <div style={{ padding: '4px 16px 0' }}>
                     <Button size="l" stretched loading={isLoading} disabled={!canSubmit} onClick={() => void handleSubmit()}>
                         Enviar solicitud

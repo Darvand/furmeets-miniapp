@@ -1,7 +1,5 @@
 /** Fotos o referencias de la fursona que admite el formulario (SPEC §3.1). */
 export const MAX_FORM_IMAGES = 3;
-/** Edad desde la que la solicitud ya no lleva la etiqueta "Menor de edad". */
-export const ADULT_AGE = 18;
 
 /** `POST /applications`. Solo edad y ciudad son obligatorias. */
 export interface ApplicationPayload {
