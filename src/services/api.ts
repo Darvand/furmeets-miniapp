@@ -23,11 +23,16 @@ export function authBaseQuery(path: string) {
     });
 }
 
+/** URL absoluta de un recurso de la API, para endpoints fuera de la base de un servicio. */
+export function apiUrl(path: string): string {
+    return `${API_URL}${path}`;
+}
+
 /** `fetch` autenticado contra la API, para lo que no pasa por RTK Query (p. ej. imágenes). */
-export function authFetch(path: string): Promise<Response> {
-    const headers = new Headers();
+export function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
     setAuthorization(headers);
-    return fetch(`${API_URL}${path}`, { headers });
+    return fetch(apiUrl(path), { ...init, headers });
 }
 
 function setAuthorization(headers: Headers): void {
