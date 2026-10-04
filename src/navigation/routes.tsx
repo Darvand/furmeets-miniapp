@@ -5,6 +5,8 @@ import type { RouteAccess } from '@/components/RoleRoute';
 // Cada página es su propio chunk: el arranque solo descarga la que abre el usuario.
 const IndexPage = lazy(() =>
   import('@/pages/IndexPage/IndexPage').then((m) => ({ default: m.IndexPage })));
+const WelcomePage = lazy(() =>
+  import('@/pages/WelcomePage').then((m) => ({ default: m.WelcomePage })));
 const RegisterPage = lazy(() =>
   import('@/pages/RegisterPage/RegisterPage').then((m) => ({ default: m.RegisterPage })));
 const RequestChatPage = lazy(() =>
@@ -24,17 +26,15 @@ interface Route {
 }
 
 const isMember: RouteAccess = (me) => me.role === 'member';
+const isApplicantWithoutRequest: RouteAccess = (me) =>
+  me.role === 'applicant' && !me.requestChatId;
 const isApplicantWithState = (state: string): RouteAccess => (me) =>
   me.role === 'applicant' && me.requestChatState === state;
 
 export const routes: Route[] = [
   { path: '/', Component: IndexPage, allow: isMember },
-  {
-    path: '/register',
-    Component: RegisterPage,
-    title: 'Register',
-    allow: (me) => me.role === 'applicant' && !me.requestChatId,
-  },
+  { path: '/welcome', Component: WelcomePage, title: 'Welcome', allow: isApplicantWithoutRequest },
+  { path: '/register', Component: RegisterPage, title: 'Register', allow: isApplicantWithoutRequest },
   {
     path: '/request-chat/:uuid',
     Component: RequestChatPage,

@@ -1,3 +1,4 @@
+import { ApplicationForm, LegacyApplication } from "./application.model";
 import { RequestChatMessage } from "./request-chat-message.model";
 import { User } from "./user.model";
 
@@ -36,18 +37,13 @@ export interface RequestChatList {
     items: RequestChatItem[];
 }
 
-export interface CreateRequestChatPayload {
-    requesterUUID: string;
-    whereYouFoundUs?: string;
-    interests?: string;
-}
-
 export interface RequestChat {
     uuid: string;
     requester: User;
     messages: RequestChatMessage[];
-    whereYouFoundUs?: string;
-    interests?: string;
+    /** Falta en las solicitudes anteriores al formulario actual: esas traen `legacy`. */
+    form?: ApplicationForm;
+    legacy?: LegacyApplication;
     state: string;
     votes: RequestChatVotes;
     userVote?: RequestChatVoteType;

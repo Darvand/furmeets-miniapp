@@ -1,8 +1,9 @@
-import { CreateRequestChatPayload, RequestChat, RequestChatItem, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
+import { ApplicationPayload } from "@/models/application.model";
+import { RequestChat, RequestChatItem, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
 import { setOwnRequestChat } from "@/state/me.slice";
 import { toggleOwnVote } from "@/helpers/votes";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { authBaseQuery } from "./api";
+import { apiUrl, authBaseQuery } from "./api";
 
 export interface ListRequestChatResponse {
     items: RequestChatItem[];
@@ -33,9 +34,11 @@ export const requestChatApi = createApi({
             keepUnusedDataFor: 60 * 60,
         }),
 
-        createRequestChat: builder.mutation<RequestChat, CreateRequestChatPayload>({
+        /** Envía el formulario (`POST /applications`) y abre el chat de la solicitud. */
+        submitApplication: builder.mutation<RequestChat, ApplicationPayload>({
             query: (payload) => ({
-                url: `/`,
+                // Fuera de `/request-chats`: una URL absoluta no se une a la base.
+                url: apiUrl('/applications'),
                 method: 'POST',
                 body: payload,
             }),
@@ -46,7 +49,7 @@ export const requestChatApi = createApi({
                     void dispatch(requestChatApi.util.upsertQueryData('getRequestChatById', data.uuid, data));
                     dispatch(setOwnRequestChat({ id: data.uuid, state: 'InProgress' }));
                 } catch (error) {
-                    console.error('Error creating request chat:', error);
+                    console.error('Error submitting application:', error);
                 }
             },
         }),
@@ -96,6 +99,6 @@ export const requestChatApi = createApi({
 export const {
     useGetRequestChatByIdQuery,
     useGetAllRequestChatsQuery,
-    useCreateRequestChatMutation,
+    useSubmitApplicationMutation,
     useVoteMutation,
 } = requestChatApi;
