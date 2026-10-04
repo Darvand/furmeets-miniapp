@@ -86,8 +86,18 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
             dispatch(patchListItem(uuid, (item) => Object.assign(item, { state, votes })));
         },
         'request-chat-update': (update: RequestChat) => {
-            const { uuid, state, votes, messages } = update;
-            dispatch(patchChat(uuid, (chat) => Object.assign(chat, { state, votes, messages })));
+            const { uuid, state, votes, messages, hasOlderMessages } = update;
+            dispatch(patchChat(uuid, (chat) => {
+                Object.assign(chat, { state, votes });
+                // Trae solo la última página: si se solapa con lo que hay, se agregan los
+                // nuevos y se conservan las páginas anteriores ya cargadas.
+                const known = new Set(chat.messages.map((m) => m.uuid));
+                if (messages.some((m) => known.has(m.uuid))) {
+                    chat.messages.push(...messages.filter((m) => !known.has(m.uuid)));
+                } else {
+                    Object.assign(chat, { messages, hasOlderMessages });
+                }
+            }));
             const last = messages[messages.length - 1] as RequestChatMessage | undefined;
             dispatch(patchListItem(uuid, (item) => {
                 Object.assign(item, { state, votes });

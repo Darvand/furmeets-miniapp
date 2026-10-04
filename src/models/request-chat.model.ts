@@ -40,13 +40,23 @@ export interface RequestChatList {
 export interface RequestChat {
     uuid: string;
     requester: User;
+    /** Los últimos mensajes (hasta 50) más las páginas anteriores que se hayan pedido. */
     messages: RequestChatMessage[];
+    /** Hay mensajes anteriores al primero de `messages` (ver `loadOlderMessages`). */
+    hasOlderMessages: boolean;
     /** Falta en las solicitudes anteriores al formulario actual: esas traen `legacy`. */
     form?: ApplicationForm;
     legacy?: LegacyApplication;
     state: string;
     votes: RequestChatVotes;
     userVote?: RequestChatVoteType;
+}
+
+/** `GET /request-chats/:id/messages?before=`: mensajes anteriores, en orden. */
+export interface RequestChatMessagePage {
+    items: RequestChatMessage[];
+    /** Quedan más anteriores al primero de `items`. */
+    hasMore: boolean;
 }
 
 /**

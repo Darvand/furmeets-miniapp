@@ -1,5 +1,5 @@
 import { ApplicationPayload } from "@/models/application.model";
-import { RequestChat, RequestChatItem, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
+import { RequestChat, RequestChatItem, RequestChatMessagePage, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
 import { setOwnRequestChat } from "@/state/me.slice";
 import { toggleOwnVote } from "@/helpers/votes";
 import { createApi } from "@reduxjs/toolkit/query/react";
@@ -24,6 +24,29 @@ export const requestChatApi = createApi({
         getRequestChatById: builder.query<RequestChat, string>({
             query: (id: string) => `/${id}`,
             providesTags: (_result, _error, id) => [{ type: REQUEST_CHAT_TAG, id }],
+        }),
+
+        /**
+         * Página de mensajes anteriores a `before` (el primero que se tiene), agregada al
+         * principio del chat en caché. Es una mutación porque no tiene caché propia.
+         */
+        loadOlderMessages: builder.mutation<RequestChatMessagePage, { id: string; before: string }>({
+            query: ({ id, before }) => ({
+                url: `/${id}/messages`,
+                params: { before },
+            }),
+            async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(requestChatApi.util.updateQueryData('getRequestChatById', id, (chat) => {
+                        const known = new Set(chat.messages.map((m) => m.uuid));
+                        chat.messages.unshift(...data.items.filter((m) => !known.has(m.uuid)));
+                        chat.hasOlderMessages = data.hasMore;
+                    }));
+                } catch (error) {
+                    console.error('Error loading older messages:', error);
+                }
+            },
         }),
 
         getAllRequestChats: builder.query<ListRequestChatResponse, void>({
@@ -99,6 +122,7 @@ export const requestChatApi = createApi({
 export const {
     useGetRequestChatByIdQuery,
     useGetAllRequestChatsQuery,
+    useLoadOlderMessagesMutation,
     useSubmitApplicationMutation,
     useVoteMutation,
 } = requestChatApi;
