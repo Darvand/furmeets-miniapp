@@ -90,11 +90,14 @@ export const RequestChatPage: FC = () => {
         }
     };
 
-    // Solo un mensaje nuevo al final baja la vista; los anteriores se agregan arriba.
-    const lastMessageId = requestChat?.messages[requestChat.messages.length - 1]?.uuid;
+    // Al abrir el chat se ve lo último. Los mensajes que llegan después no mueven la vista;
+    // solo baja al enviar uno propio (`sendMessage`).
+    const chatId = requestChat?.uuid;
     useEffect(() => {
-        scrollToBottom();
-    }, [lastMessageId, pending.length]);
+        if (chatId) {
+            messagesEndRef.current?.scrollIntoView();
+        }
+    }, [chatId]);
 
     // Al agregar mensajes anteriores, se mantiene a la vista el mismo mensaje.
     const firstMessageId = requestChat?.messages[0]?.uuid;
