@@ -1,4 +1,4 @@
-import { Cell, List, IconButton, Spinner, Badge, Modal, Text, Button } from '@telegram-apps/telegram-ui';
+import { Cell, List, IconButton, Spinner, Badge, Modal, Text, Button, Caption } from '@telegram-apps/telegram-ui';
 import { MediaAvatar } from '@/components/MediaAvatar';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
@@ -13,6 +13,10 @@ import { AppDispatch, RootState } from '@/state/store';
 import { retryMessage, sendMessage as sendOptimistic } from '@/services/live-updates';
 import { initials, wrapLastText } from '@/helpers/text';
 import { formatChatTime } from '@/helpers/date';
+
+/** Encabezado con el que empieza todo chat (antes era un mensaje del bot, T19). */
+const WELCOME_TEXT =
+    '¡Hola! En este chat podrás comunicarte con todos los miembros. ¿Qué tal si empiezas por presentarte y contarnos un poco sobre ti?';
 
 export const RequestChatPage: FC = () => {
     const params = useParams<{ uuid: string }>();
@@ -259,11 +263,25 @@ export const RequestChatPage: FC = () => {
                 >
                     <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto' }}>
                         <List style={{ padding: '16px' }} >
-                            {requestChat.hasOlderMessages && (
+                            {requestChat.hasOlderMessages ? (
                                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                                     <Button mode='plain' size='s' loading={isLoadingOlder} onClick={handleLoadOlder}>
                                         Ver mensajes anteriores
                                     </Button>
+                                </div>
+                            ) : (
+                                // El inicio del chat: la bienvenida es parte de la App, no un mensaje.
+                                <div
+                                    style={{
+                                        margin: '0 auto 16px',
+                                        maxWidth: '320px',
+                                        padding: '12px 16px',
+                                        borderRadius: '12px',
+                                        backgroundColor: themeParams.secondaryBackgroundColor(),
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    <Caption>{WELCOME_TEXT}</Caption>
                                 </div>
                             )}
                             {requestChat.messages.map((message) => {
