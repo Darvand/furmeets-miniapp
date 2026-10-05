@@ -1,6 +1,7 @@
 import { initials, wrapLastText } from "@/helpers/text";
 import { formatChatTime } from "@/helpers/date";
 import { RequestChatItem } from "@/models/request-chat.model";
+import { messagePreview } from "@/models/request-chat-message.model";
 import { themeParams } from "@telegram-apps/sdk-react";
 import { Accordion, Caption, Cell, List } from "@telegram-apps/telegram-ui";
 import { MediaAvatar } from "@/components/MediaAvatar";
@@ -47,7 +48,7 @@ export const RequestChatList: React.FC<RequestChatListProps> = ({ requestChats, 
                             subtitle={chat.lastMessage && (
                                 <div>
                                     <Caption style={{ color: themeParams.accentTextColor() }}>{chat.lastMessage.from.name}: </Caption>
-                                    <Caption>{wrapLastText(30, chat.lastMessage.from.name, chat.lastMessage.content)}</Caption>
+                                    <Caption>{wrapLastText(30, chat.lastMessage.from.name, messagePreview(chat.lastMessage.content))}</Caption>
                                 </div>
                             )}
                             after={
