@@ -60,8 +60,8 @@ export interface RequestChatMessagePage {
 }
 
 /**
- * Respuesta de un voto: solo estado y conteos. Si el voto cerró la solicitud, la
- * solicitud con el mensaje de cierre llega después por `request-chat-update`.
+ * Respuesta de un voto: solo estado y conteos. Si el voto cerró la solicitud, su nuevo
+ * estado llega después a todos por `request-chat-update` (sin mensaje de cierre en el chat).
  */
 export interface RequestChatVoteResult {
     uuid: string;
