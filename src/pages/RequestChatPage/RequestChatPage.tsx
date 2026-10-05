@@ -1,16 +1,17 @@
-import { Cell, List, IconButton, Spinner, Badge, Modal, Text, Button, Caption } from '@telegram-apps/telegram-ui';
+import { Avatar, Cell, List, IconButton, Spinner, Badge, Modal, Text, Button, Caption } from '@telegram-apps/telegram-ui';
 import { MediaAvatar } from '@/components/MediaAvatar';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
-import { Icon16Chevron, Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
+import { Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { themeParams } from '@telegram-apps/sdk-react';
 import { ChatBubble } from '@/components/ChatBubble/ChatBubble';
+import { ChatComposer } from '@/components/ChatComposer/ChatComposer';
 import { useGetRequestChatByIdQuery, useLoadOlderMessagesMutation, useVoteMutation } from '@/services/request-chat.service';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/state/store';
-import { retryMessage, sendMessage as sendOptimistic } from '@/services/live-updates';
+import { type MessageBody, retryMessage, sendMessage as sendOptimistic } from '@/services/live-updates';
 import { initials, wrapLastText } from '@/helpers/text';
 import { formatChatTime } from '@/helpers/date';
 
@@ -37,7 +38,6 @@ export const RequestChatPage: FC = () => {
     );
     const [vote, { isLoading: isVoting }] = useVoteMutation();
     const [loadOlder, { isLoading: isLoadingOlder }] = useLoadOlderMessagesMutation();
-    const [messageContent, setMessageContent] = useState<string>('');
     const [showModal, setShowModal] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -54,11 +54,10 @@ export const RequestChatPage: FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    const sendMessage = () => {
-        if (requestChat && messageContent.trim() !== '') {
+    const sendMessage = (body: MessageBody) => {
+        if (requestChat) {
             // Aparece al instante como "enviando"; el autor lo decide la API con el initData.
-            dispatch(sendOptimistic(requestChat.uuid, messageContent));
-            setMessageContent('');
+            dispatch(sendOptimistic(requestChat.uuid, body));
             scrollToBottom();
         }
     };
@@ -169,7 +168,7 @@ export const RequestChatPage: FC = () => {
                         </div>
                     </div>
                 </Modal>
-                <Cell
+                {isRequesterTheViewer ? <RequesterHeader /> : <Cell
                     style={{
                         padding: '0 4px',
                         gap: '8px'
@@ -252,7 +251,7 @@ export const RequestChatPage: FC = () => {
                     }
                 >
                     {wrapLastText(20, requestChat.requester.name)}
-                </Cell>
+                </Cell>}
                 <div
                     style={{
                         flex: 1,
@@ -289,8 +288,10 @@ export const RequestChatPage: FC = () => {
                                     <ChatBubble
                                         key={message.uuid}
                                         message={message.content}
+                                        imageIds={message.imageIds}
+                                        authorId={message.user.uuid}
                                         avatarMediaId={message.user.avatarMediaId}
-                                        username={message.user.username!}
+                                        username={message.user.username ?? message.user.name}
                                         isOwn={message.user.uuid === user?.uuid}
                                         time={formatChatTime(message.sentAt)}
                                     />
@@ -300,6 +301,8 @@ export const RequestChatPage: FC = () => {
                                 <ChatBubble
                                     key={message.clientMessageId}
                                     message={message.content}
+                                    imageIds={message.imageIds}
+                                    authorId={user.uuid}
                                     avatarMediaId={user.avatarMediaId}
                                     username={user.username ?? user.name}
                                     isOwn
@@ -312,45 +315,61 @@ export const RequestChatPage: FC = () => {
                         </List>
                     </div>
                 </div>
-                {
-                    requestChat.state === 'InProgress' && (
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '8px 16px',
-                            }}
-                        >
-                            <input
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    height: '40px',
-                                    width: '100%',
-                                    color: 'white',
-                                    fontFamily: 'var(--tgui--font-family)',
-                                }}
-                                autoFocus
-                                placeholder="Escribe un mensaje..."
-                                value={messageContent}
-                                onChange={(e) => setMessageContent(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        sendMessage();
-                                    }
-                                }}
-                            />
-                            <IconButton
-                                mode="bezeled"
-                                size="m"
-                                onClick={() => sendMessage()}
-                            >
-                                <Icon16Chevron size={16} />
-                            </IconButton>
-                        </div>
-                    )
-                }
+                {requestChat.state === 'InProgress' ? (
+                    <ChatComposer onSend={sendMessage} />
+                ) : (
+                    // Solo lectura tras el cierre (SPEC §3.2): sin caja de texto.
+                    <div
+                        style={{
+                            padding: '14px 16px',
+                            textAlign: 'center',
+                            borderTop: `1px solid ${themeParams.sectionSeparatorColor()}`,
+                            flexShrink: 0,
+                        }}
+                    >
+                        <Caption style={{ color: themeParams.hintColor() }}>
+                            La solicitud se cerró: el chat es de solo lectura.
+                        </Caption>
+                    </div>
+                )}
             </div>
         </Page>
     );
 };
+
+/**
+ * Cabecera del chat del solicitante (artboard *Solicitante*): con quién habla y en qué
+ * paso está. Sin votación (SPEC §3.3).
+ */
+const RequesterHeader: FC = () => (
+    <div style={{ flexShrink: 0, borderBottom: `1px solid ${themeParams.sectionSeparatorColor()}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', height: '56px', padding: '0 16px' }}>
+            <Avatar size={40} acronym='FM' />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                <Text weight='2'>FurMeets · tu solicitud</Text>
+                <Caption style={{ color: themeParams.hintColor() }}>Conversación con los miembros</Caption>
+            </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 16px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Caption weight='2' style={{ flexGrow: 1, color: themeParams.accentTextColor() }}>
+                    Paso 2 de 3 · conversación con el grupo
+                </Caption>
+                <Caption level='2' style={{ color: themeParams.hintColor() }}>en revisión</Caption>
+            </div>
+            <div style={{ display: 'flex', gap: '4px' }} aria-hidden>
+                {[true, true, false].map((done, i) => (
+                    <div
+                        key={i}
+                        style={{
+                            flexGrow: 1,
+                            height: '4px',
+                            borderRadius: '2px',
+                            background: done ? themeParams.accentTextColor() : themeParams.sectionSeparatorColor(),
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    </div>
+);
