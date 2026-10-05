@@ -55,6 +55,8 @@ export const ChatBubble: FC<ChatBubbleProps> = ({ message, imageIds, authorId, u
                     color: isOwn ? themeParams.buttonTextColor() : themeParams.textColor(),
                     borderRadius: '12px',
                     padding: '6px 10px 4px',
+                    // El texto va en un `span` propio: la fuente de telegram-ui solo la llevan sus componentes.
+                    fontFamily: 'var(--tgui--font-family)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px',

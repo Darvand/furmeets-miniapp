@@ -1,6 +1,7 @@
 import { lazy, type ComponentType, type JSX } from 'react';
 
 import type { RouteAccess } from '@/components/RoleRoute';
+import { homePathFor } from './role-home';
 
 // Cada página es su propio chunk: el arranque solo descarga la que abre el usuario.
 const IndexPage = lazy(() =>
@@ -39,8 +40,11 @@ export const routes: Route[] = [
     path: '/request-chat/:uuid',
     Component: RequestChatPage,
     title: 'Request Chat',
-    // Un miembro abre cualquier chat; un solicitante, solo el de su solicitud.
-    allow: (me, params) => me.role === 'member' || me.requestChatId === params.uuid,
+    // Un miembro abre cualquier chat; un solicitante, solo el de su solicitud y mientras
+    // está en curso. Al cerrarse (en vivo, por `request-chat-update`), pasa a la pantalla
+    // del resultado: el chat ya no anuncia el resultado (T19).
+    allow: (me, params) =>
+      me.role === 'member' || homePathFor(me) === `/request-chat/${params.uuid}`,
   },
   { path: '/approved', Component: ApprovedPage, allow: isApplicantWithState('Approved') },
   { path: '/not-approved', Component: NotApprovedPage, allow: isApplicantWithState('Rejected') },
