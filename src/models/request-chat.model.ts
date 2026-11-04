@@ -33,8 +33,29 @@ export interface RequestChatVotesEvent {
     votes: RequestChatVotes;
 }
 
+/** Parte del listado: las que siguen en curso, o el historial de las ya cerradas. */
+export type RequestChatScope = 'open' | 'closed';
+
+export interface RequestChatThresholds {
+    approve: number;
+    reject: number;
+}
+
+/** Cuántas solicitudes hay por estado, en toda la BD. */
+export interface RequestChatTotals {
+    total: number;
+    inProgress: number;
+    approved: number;
+    rejected: number;
+}
+
+/** `GET /request-chats`: una página, con los totales y los umbrales vigentes. */
 export interface RequestChatList {
     items: RequestChatItem[];
+    /** Para pedir la página siguiente; falta en la última. */
+    nextCursor?: string;
+    totals: RequestChatTotals;
+    thresholds: RequestChatThresholds;
 }
 
 export interface RequestChat {
