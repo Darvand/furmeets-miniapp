@@ -58,6 +58,19 @@ export interface RequestChatList {
     thresholds: RequestChatThresholds;
 }
 
+/** Un aval: quién y cuándo. A diferencia de los votos, lleva el nombre de su autor. */
+export interface RequestChatEndorsement {
+    endorser: Pick<User, 'uuid' | 'name' | 'username' | 'avatarMediaId'>;
+    /** ISO-8601 UTC. */
+    at: string;
+}
+
+/** Evento `request-chat-endorsements` y respuesta de avalar o retirar el aval. */
+export interface RequestChatEndorsements {
+    uuid: string;
+    endorsements: RequestChatEndorsement[];
+}
+
 export interface RequestChat {
     uuid: string;
     requester: User;
@@ -69,8 +82,13 @@ export interface RequestChat {
     form?: ApplicationForm;
     legacy?: LegacyApplication;
     state: string;
-    votes: RequestChatVotes;
+    // Lo siguiente es de la revisión: la API solo se lo envía a los miembros (RNF-PRI-03).
+    votes?: RequestChatVotes;
+    thresholds?: RequestChatThresholds;
     userVote?: RequestChatVoteType;
+    endorsements?: RequestChatEndorsement[];
+    /** ISO-8601 UTC. */
+    createdAt?: string;
 }
 
 /** `GET /request-chats/:id/messages?before=`: mensajes anteriores, en orden. */
