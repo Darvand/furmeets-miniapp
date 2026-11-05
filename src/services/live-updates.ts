@@ -4,7 +4,7 @@ import { RequestChat, RequestChatItem, RequestChatVotesEvent } from "@/models/re
 import { setOwnRequestChat } from "@/state/me.slice";
 import { outboxActions } from "@/state/outbox.slice";
 import type { AppDispatch, RootState } from "@/state/store";
-import { REQUEST_CHAT_TAG, requestChatApi } from "./request-chat.service";
+import { REQUEST_CHAT_LIST_TAG, REQUEST_CHAT_TAG, requestChatApi } from "./request-chat.service";
 import { getSocket } from "./socket";
 
 /** Cuánto se espera el ack antes de marcar un mensaje como "no enviado". */
@@ -28,13 +28,24 @@ interface SocketException {
 const patchChat = (id: string, recipe: (chat: RequestChat) => void) =>
     requestChatApi.util.updateQueryData('getRequestChatById', id, recipe);
 
-const patchListItem = (id: string, recipe: (item: RequestChatItem) => void) =>
-    requestChatApi.util.updateQueryData('getAllRequestChats', undefined, (list) => {
+/** Solo las que siguen en curso reciben mensajes y votos: el historial no cambia. */
+const patchOpenItem = (id: string, recipe: (item: RequestChatItem) => void) =>
+    requestChatApi.util.updateQueryData('listRequestChats', 'open', (list) => {
         const item = list.items.find((i) => i.uuid === id);
         if (item) {
             recipe(item);
         }
     });
+
+/**
+ * Una solicitud que se cierra cambia de listado y mueve los totales: se piden de nuevo los
+ * dos. Pasa pocas veces, y así los totales siempre son los de la BD.
+ */
+function refreshListsIfClosed(dispatch: AppDispatch, state: string): void {
+    if (state !== 'InProgress') {
+        dispatch(requestChatApi.util.invalidateTags([REQUEST_CHAT_LIST_TAG]));
+    }
+}
 
 /**
  * Un mensaje confirmado por la API (ack o evento): pasa de la bandeja de salida a la caché
@@ -51,7 +62,7 @@ function receiveMessage(dispatch: AppDispatch, message: RequestChatMessage): voi
             chat.messages.push(message);
         }
     }));
-    dispatch(patchListItem(message.requestChatUUID, (item) => {
+    dispatch(patchOpenItem(message.requestChatUUID, (item) => {
         item.lastMessage = { at: message.sentAt, content: message.content, from: message.user };
     }));
 }
@@ -92,7 +103,8 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
         'request-chat-votes': ({ uuid, state, votes }: RequestChatVotesEvent) => {
             // Conteos de todos; el voto propio no cambia.
             dispatch(patchChat(uuid, (chat) => Object.assign(chat, { state, votes })));
-            dispatch(patchListItem(uuid, (item) => Object.assign(item, { state, votes })));
+            // Si este voto la cerró, `request-chat-update` llega enseguida y refresca los listados.
+            dispatch(patchOpenItem(uuid, (item) => Object.assign(item, { state, votes })));
         },
         'request-chat-update': (update: RequestChat) => {
             const { uuid, state, votes, messages, hasOlderMessages } = update;
@@ -108,19 +120,22 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
                 }
             }));
             const last = messages[messages.length - 1] as RequestChatMessage | undefined;
-            dispatch(patchListItem(uuid, (item) => {
+            dispatch(patchOpenItem(uuid, (item) => {
                 Object.assign(item, { state, votes });
                 if (last) {
                     item.lastMessage = { at: last.sentAt, content: last.content, from: last.user };
                 }
             }));
+            refreshListsIfClosed(dispatch, state);
             // Si es la propia solicitud, el estado nuevo también decide el enrutamiento.
             dispatch(setOwnRequestChat({ id: uuid, state: state as RequestChatState }));
         },
         'new-request-chat': (chat: RequestChat) => {
-            dispatch(requestChatApi.util.updateQueryData('getAllRequestChats', undefined, (list) => {
+            dispatch(requestChatApi.util.updateQueryData('listRequestChats', 'open', (list) => {
                 if (!list.items.some((i) => i.uuid === chat.uuid)) {
                     list.items.unshift(toListItem(chat));
+                    list.totals.total += 1;
+                    list.totals.inProgress += 1;
                 }
             }));
         },

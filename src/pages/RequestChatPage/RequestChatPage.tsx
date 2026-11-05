@@ -8,7 +8,7 @@ import { themeParams } from '@telegram-apps/sdk-react';
 import { ChatBubble } from '@/components/ChatBubble/ChatBubble';
 import { ChatComposer } from '@/components/ChatComposer/ChatComposer';
 import { useGetRequestChatByIdQuery, useLoadOlderMessagesMutation, useVoteMutation } from '@/services/request-chat.service';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/state/store';
 import { type MessageBody, retryMessage, sendMessage as sendOptimistic } from '@/services/live-updates';
@@ -29,6 +29,7 @@ export const RequestChatPage: FC = () => {
     // Se pide al abrir; después lo mantienen al día los eventos del socket compartido.
     const {
         data: requestChat,
+        error,
         isError,
         isLoading,
         refetch,
@@ -154,6 +155,13 @@ export const RequestChatPage: FC = () => {
         }
     }, [firstMessageId]);
 
+    // No existe o no puede verla (por ejemplo, un enlace `startapp` viejo): al inicio.
+    if (!requestChat && error && 'status' in error && [400, 403, 404].includes(error.status as number)) {
+        return <Navigate to="/" replace />;
+    }
+    if (isError && !requestChat) {
+        return <Page back={true}>Error loading chat. <button onClick={() => void refetch()}>Retry</button></Page>;
+    }
     if (isLoading || !requestChat) {
         return <Page back={true}>
             <div style={{
@@ -166,9 +174,6 @@ export const RequestChatPage: FC = () => {
                 <Spinner size='m' />
             </div>
         </Page>;
-    }
-    if (isError) {
-        return <Page back={true}>Error loading chat. <button onClick={() => void refetch()}>Retry</button></Page>;
     }
 
     return (

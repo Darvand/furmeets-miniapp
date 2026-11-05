@@ -1,16 +1,17 @@
 import { ApplicationPayload } from "@/models/application.model";
-import { RequestChat, RequestChatItem, RequestChatMessagePage, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
+import { RequestChat, RequestChatList, RequestChatMessagePage, RequestChatScope, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
 import { setOwnRequestChat } from "@/state/me.slice";
 import { toggleOwnVote } from "@/helpers/votes";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { apiUrl, authBaseQuery } from "./api";
 
-export interface ListRequestChatResponse {
-    items: RequestChatItem[];
-}
-
-/** Un solo tag: al reconectar el socket se invalida todo para recuperar lo perdido. */
+/** Un solo tipo de tag: al reconectar el socket se invalida todo para recuperar lo perdido. */
 export const REQUEST_CHAT_TAG = 'RequestChat';
+/** Los dos listados: se piden de nuevo cuando una solicitud se cierra. */
+export const REQUEST_CHAT_LIST_TAG = { type: REQUEST_CHAT_TAG, id: 'LIST' } as const;
+
+/** En curso hay pocas y se ven todas; del historial, las últimas (el diseño muestra unas 4). */
+const LIST_PAGE_SIZE: Record<RequestChatScope, number> = { open: 50, closed: 5 };
 
 /**
  * La caché solo guarda lo que confirmó la API. Los eventos del socket la parchean en vivo
@@ -49,12 +50,43 @@ export const requestChatApi = createApi({
             },
         }),
 
-        getAllRequestChats: builder.query<ListRequestChatResponse, void>({
-            query: () => `/`,
-            providesTags: [REQUEST_CHAT_TAG],
+        listRequestChats: builder.query<RequestChatList, RequestChatScope>({
+            query: (scope) => ({
+                url: `/`,
+                params: { scope, limit: LIST_PAGE_SIZE[scope] },
+            }),
+            providesTags: [REQUEST_CHAT_LIST_TAG],
             // Se mantiene aunque se abra un chat: los eventos la siguen parchando y volver
             // al inicio no la pide de nuevo.
             keepUnusedDataFor: 60 * 60,
+        }),
+
+        /**
+         * La página siguiente de un listado, agregada a la que está en caché. Es una mutación
+         * porque no tiene caché propia.
+         */
+        loadMoreRequestChats: builder.mutation<RequestChatList, { scope: RequestChatScope; cursor: string }>({
+            query: ({ scope, cursor }) => ({
+                url: `/`,
+                params: { scope, cursor, limit: LIST_PAGE_SIZE[scope] },
+            }),
+            async onQueryStarted({ scope, cursor }, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(requestChatApi.util.updateQueryData('listRequestChats', scope, (list) => {
+                        // Si el listado se pidió de nuevo entretanto, esta página ya no sigue a
+                        // la última que hay: agregarla dejaría un hueco.
+                        if (list.nextCursor !== cursor) {
+                            return;
+                        }
+                        const known = new Set(list.items.map((i) => i.uuid));
+                        list.items.push(...data.items.filter((i) => !known.has(i.uuid)));
+                        list.nextCursor = data.nextCursor;
+                    }));
+                } catch (error) {
+                    console.error('Error loading more request chats:', error);
+                }
+            },
         }),
 
         /** Envía el formulario (`POST /applications`) y abre el chat de la solicitud. */
@@ -91,7 +123,7 @@ export const requestChatApi = createApi({
                     dispatch(requestChatApi.util.updateQueryData('getRequestChatById', id, (chat) => {
                         Object.assign(chat, toggleOwnVote(chat, type));
                     })),
-                    dispatch(requestChatApi.util.updateQueryData('getAllRequestChats', undefined, (list) => {
+                    dispatch(requestChatApi.util.updateQueryData('listRequestChats', 'open', (list) => {
                         const item = list.items.find((i) => i.uuid === id);
                         if (item) {
                             Object.assign(item, toggleOwnVote(item, type));
@@ -104,7 +136,7 @@ export const requestChatApi = createApi({
                     dispatch(requestChatApi.util.updateQueryData('getRequestChatById', id, (chat) => {
                         Object.assign(chat, confirmed);
                     }));
-                    dispatch(requestChatApi.util.updateQueryData('getAllRequestChats', undefined, (list) => {
+                    dispatch(requestChatApi.util.updateQueryData('listRequestChats', 'open', (list) => {
                         const item = list.items.find((i) => i.uuid === id);
                         if (item) {
                             Object.assign(item, confirmed);
@@ -121,7 +153,8 @@ export const requestChatApi = createApi({
 
 export const {
     useGetRequestChatByIdQuery,
-    useGetAllRequestChatsQuery,
+    useListRequestChatsQuery,
+    useLoadMoreRequestChatsMutation,
     useLoadOlderMessagesMutation,
     useSubmitApplicationMutation,
     useVoteMutation,
