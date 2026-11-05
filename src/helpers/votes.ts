@@ -1,4 +1,4 @@
-import { RequestChatVotes, RequestChatVoteType } from "@/models/request-chat.model";
+import { RequestChatThresholds, RequestChatVotes, RequestChatVoteType } from "@/models/request-chat.model";
 
 interface VoteState {
     votes: RequestChatVotes;
@@ -24,4 +24,10 @@ export function toggleOwnVote({ votes, userVote }: VoteState, type: RequestChatV
     }
     next[COUNT[type]] += 1;
     return { votes: next, userVote: type };
+}
+
+/** Este voto alcanza el umbral: cierra la solicitud en el acto y ya no se puede cambiar. */
+export function voteWouldClose(state: VoteState, type: RequestChatVoteType, thresholds: RequestChatThresholds): boolean {
+    const { votes } = toggleOwnVote(state, type);
+    return votes.approved >= thresholds.approve || votes.rejected >= thresholds.reject;
 }
