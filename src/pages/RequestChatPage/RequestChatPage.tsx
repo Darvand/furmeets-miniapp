@@ -1,13 +1,15 @@
-import { Avatar, Cell, List, IconButton, Spinner, Badge, Modal, Text, Button, Caption } from '@telegram-apps/telegram-ui';
+import { Avatar, Cell, List, IconButton, Spinner, Text, Button, Caption } from '@telegram-apps/telegram-ui';
 import { MediaAvatar } from '@/components/MediaAvatar';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
-import { Icon20Select, Icon24Cancel, Icon24ChevronLeft } from 'tmaui/icons';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Icon24ChevronLeft } from 'tmaui/icons';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { themeParams } from '@telegram-apps/sdk-react';
 import { ChatBubble } from '@/components/ChatBubble/ChatBubble';
 import { ChatComposer } from '@/components/ChatComposer/ChatComposer';
-import { useGetRequestChatByIdQuery, useLoadOlderMessagesMutation, useVoteMutation } from '@/services/request-chat.service';
+import { useGetRequestChatByIdQuery, useLoadOlderMessagesMutation } from '@/services/request-chat.service';
+import { VotePanel } from '@/components/VotePanel/VotePanel';
+import { RequestChat } from '@/models/request-chat.model';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/state/store';
@@ -42,9 +44,8 @@ export const RequestChatPage: FC = () => {
         () => outbox.filter((m) => m.requestChatUUID === params.uuid),
         [outbox, params.uuid],
     );
-    const [vote, { isLoading: isVoting }] = useVoteMutation();
+    const me = useSelector((state: RootState) => state.me);
     const [loadOlder, { isLoading: isLoadingOlder }] = useLoadOlderMessagesMutation();
-    const [showModal, setShowModal] = useState<string>('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     /** Alto del historial antes de agregar mensajes anteriores, para no mover la vista. */
@@ -57,7 +58,6 @@ export const RequestChatPage: FC = () => {
     const navigate = useNavigate();
 
     const handleNavigateBack = () => {
-        if (isRequesterTheViewer) return;
         navigate(-1);
     };
 
@@ -89,28 +89,9 @@ export const RequestChatPage: FC = () => {
         }
     };
 
-    // El voto se ve al instante (optimista); si la API lo rechaza, se revierte solo.
-    const handleApprove = () => {
-        if (requestChat && !isVoting) {
-            void vote({ id: requestChat.uuid, type: 'approve' });
-            setShowModal('');
-        }
-    }
-
-    const handleReject = () => {
-        if (requestChat && !isVoting) {
-            void vote({ id: requestChat.uuid, type: 'reject' });
-            setShowModal('');
-        }
-    }
-
-    const isRequesterTheViewer = useMemo(() => {
-        return user?.uuid === requestChat?.requester.uuid;
-    }, [user?.uuid, requestChat?.requester.uuid]);
-
-    const showVoteButtons = useMemo(() => {
-        return requestChat && !isRequesterTheViewer && requestChat.state === 'InProgress';
-    }, [requestChat, isRequesterTheViewer]);
+    // Quien ya entró al grupo ve su propia solicitud como cualquier miembro (SPEC §3.3).
+    const isMember = me?.role === 'member';
+    const isOwnRequest = user?.uuid === requestChat?.requester.uuid;
 
     const handleLoadOlder = () => {
         const first = requestChat?.messages[0];
@@ -177,7 +158,7 @@ export const RequestChatPage: FC = () => {
     }
 
     return (
-        <Page back={!isRequesterTheViewer}>
+        <Page back={isMember}>
             <div
                 style={{
                     height: '100dvh',
@@ -186,36 +167,7 @@ export const RequestChatPage: FC = () => {
                     justifyContent: 'space-between',
                 }}
             >
-                <Modal
-                    open={showModal !== ''}
-                >
-                    <div style={{
-                        padding: '24px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '16px',
-                    }}>
-                        {
-                            requestChat.userVote === showModal ? (
-                                <Text>Estás a punto de retirar tu voto</Text>
-                            ) : (
-                                <Text>Estás a punto de {showModal === 'approve' ? 'aceptar' : 'rechazar'} al solicitante</Text>
-                            )
-                        }
-                        <div style={{
-                            display: 'flex',
-                            gap: '8px',
-                        }}>
-                            <Button mode='gray' onClick={() => setShowModal('')}>Cancelar</Button>
-                            <Button onClick={showModal === 'approve' ? handleApprove : handleReject}>
-                                Entendido
-                            </Button>
-                        </div>
-                    </div>
-                </Modal>
-                {isRequesterTheViewer ? <RequesterHeader /> : <Cell
+                {!isMember ? <RequesterHeader /> : <Cell
                     style={{
                         padding: '0 4px',
                         gap: '8px'
@@ -238,67 +190,15 @@ export const RequestChatPage: FC = () => {
                     }
                     type='section'
                     subtitle={requestChat.requester.username}
-                    after={
-                        showVoteButtons && (
-                            <div
-                                style={{
-                                    paddingRight: '12px'
-                                }}
-                            >
-                                <IconButton
-                                    style={{ position: "relative" }}
-                                    onClick={() => setShowModal('approve')}
-                                    mode="bezeled"
-                                    size="s"
-                                >
-                                    {requestChat.votes.approved > 0 && (
-                                        <Badge type='number' mode='primary' style={{
-                                            position: "absolute",
-                                            top: -8,
-                                            right: -12,
-                                        }}>
-                                            {requestChat.votes.approved}
-                                        </Badge>
-                                    )}
-                                    {requestChat.userVote === 'approve' && (
-                                        <Badge type="dot" mode="white" style={{
-                                            position: "absolute",
-                                            bottom: -6,
-                                            right: -6,
-                                        }} />
-                                    )}
-                                    <Icon20Select size={24} />
-                                </IconButton>
-                                <IconButton
-                                    onClick={() => setShowModal('reject')}
-                                    style={{ position: "relative" }}
-                                    mode="plain"
-                                    size="s"
-                                >
-                                    {requestChat.votes.rejected > 0 && (
-                                        <Badge type='number' mode='critical' style={{
-                                            position: "absolute",
-                                            top: -8,
-                                            right: -12,
-                                        }}>
-                                            {requestChat.votes.rejected}
-                                        </Badge>
-                                    )}
-                                    {requestChat.userVote === 'reject' && (
-                                        <Badge type="dot" mode="white" style={{
-                                            position: "absolute",
-                                            bottom: -6,
-                                            right: -6,
-                                        }} />
-                                    )}
-                                    <Icon24Cancel size={24} />
-                                </IconButton>
-                            </div>
-                        )
-                    }
                 >
                     {wrapLastText(20, requestChat.requester.name)}
                 </Cell>}
+                {isMember && (
+                    <SummaryCard
+                        requestChat={requestChat}
+                        onOpen={() => navigate(`/request-chat/${requestChat.uuid}/summary`, { state: { fromChat: true } })}
+                    />
+                )}
                 <div
                     style={{
                         flex: 1,
@@ -363,6 +263,17 @@ export const RequestChatPage: FC = () => {
                         </div>
                     </div>
                 </div>
+                {isMember && requestChat.votes && requestChat.thresholds && (
+                    <VotePanel
+                        requestChatId={requestChat.uuid}
+                        requesterName={requestChat.requester.name}
+                        state={requestChat.state}
+                        votes={requestChat.votes}
+                        thresholds={requestChat.thresholds}
+                        userVote={requestChat.userVote}
+                        isOwn={isOwnRequest}
+                    />
+                )}
                 {requestChat.state === 'InProgress' ? (
                     <ChatComposer onSend={sendMessage} />
                 ) : (
@@ -384,6 +295,51 @@ export const RequestChatPage: FC = () => {
         </Page>
     );
 };
+
+/** "Zorro ártico · 22 años · Medellín · 3 avales": lo que haya de eso. */
+function summaryLine({ form, endorsements }: RequestChat): string {
+    const count = endorsements?.length ?? 0;
+    return [
+        form?.species,
+        form && `${form.age} años`,
+        form?.city,
+        count === 1 ? '1 aval' : `${count} avales`,
+    ].filter(Boolean).join(' · ');
+}
+
+/** Tarjeta del chat de miembros que abre el Resumen (artboard *Main*). */
+const SummaryCard: FC<{ requestChat: RequestChat; onOpen: () => void }> = ({ requestChat, onOpen }) => (
+    <div style={{ flexShrink: 0, padding: '8px 12px', borderBottom: `1px solid ${themeParams.sectionSeparatorColor()}` }}>
+        <button
+            type="button"
+            aria-label={`Ver el resumen completo de ${requestChat.requester.name}`}
+            onClick={onOpen}
+            style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                minHeight: '52px',
+                padding: '8px 12px',
+                border: 0,
+                borderRadius: '12px',
+                background: themeParams.secondaryBackgroundColor(),
+                color: themeParams.textColor(),
+                fontFamily: 'var(--tgui--font-family)',
+                textAlign: 'left',
+                cursor: 'pointer',
+            }}
+        >
+            <span style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>Resumen del solicitante</span>
+                <span style={{ fontSize: '12px', lineHeight: '16px', color: themeParams.subtitleTextColor(), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {summaryLine(requestChat)}
+                </span>
+            </span>
+            <span style={{ flexShrink: 0, fontSize: '12px', fontWeight: 600, color: themeParams.accentTextColor() }}>Ver</span>
+        </button>
+    </div>
+);
 
 /**
  * Cabecera del chat del solicitante (artboard *Solicitante*): con quién habla y en qué

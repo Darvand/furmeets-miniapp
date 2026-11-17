@@ -1,6 +1,6 @@
 import { RequestChatState } from "@/models/me.model";
 import { RequestChatMessage } from "@/models/request-chat-message.model";
-import { RequestChat, RequestChatItem, RequestChatVotesEvent } from "@/models/request-chat.model";
+import { RequestChat, RequestChatEndorsements, RequestChatItem, RequestChatVotesEvent } from "@/models/request-chat.model";
 import { setOwnRequestChat } from "@/state/me.slice";
 import { outboxActions } from "@/state/outbox.slice";
 import type { AppDispatch, RootState } from "@/state/store";
@@ -74,9 +74,9 @@ function toListItem(chat: RequestChat): RequestChatItem {
         uuid: chat.uuid,
         requester: chat.requester,
         lastMessage: last && { at: last.sentAt, content: last.content, from: last.user },
-        createdAt: last?.sentAt ?? new Date().toISOString(),
+        createdAt: chat.createdAt ?? new Date().toISOString(),
         state: chat.state,
-        votes: chat.votes,
+        votes: chat.votes ?? { approved: 0, rejected: 0 },
     };
 }
 
@@ -106,10 +106,16 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
             // Si este voto la cerró, `request-chat-update` llega enseguida y refresca los listados.
             dispatch(patchOpenItem(uuid, (item) => Object.assign(item, { state, votes })));
         },
-        'request-chat-update': (update: RequestChat) => {
-            const { uuid, state, votes, messages, hasOlderMessages } = update;
+        'request-chat-endorsements': ({ uuid, endorsements }: RequestChatEndorsements) => {
             dispatch(patchChat(uuid, (chat) => {
-                Object.assign(chat, { state, votes });
+                chat.endorsements = endorsements;
+            }));
+        },
+        'request-chat-update': (update: RequestChat) => {
+            const { uuid, state, votes, endorsements, messages, hasOlderMessages } = update;
+            dispatch(patchChat(uuid, (chat) => {
+                // El evento no lleva `userVote`: es para todos, y el propio se conserva.
+                Object.assign(chat, { state, votes, endorsements });
                 // Trae solo la última página: si se solapa con lo que hay, se agregan los
                 // nuevos y se conservan las páginas anteriores ya cargadas.
                 const known = new Set(chat.messages.map((m) => m.uuid));
@@ -121,7 +127,10 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
             }));
             const last = messages[messages.length - 1] as RequestChatMessage | undefined;
             dispatch(patchOpenItem(uuid, (item) => {
-                Object.assign(item, { state, votes });
+                item.state = state;
+                if (votes) {
+                    item.votes = votes;
+                }
                 if (last) {
                     item.lastMessage = { at: last.sentAt, content: last.content, from: last.user };
                 }

@@ -12,6 +12,8 @@ const RegisterPage = lazy(() =>
   import('@/pages/RegisterPage/RegisterPage').then((m) => ({ default: m.RegisterPage })));
 const RequestChatPage = lazy(() =>
   import('@/pages/RequestChatPage/RequestChatPage').then((m) => ({ default: m.RequestChatPage })));
+const RequestSummaryPage = lazy(() =>
+  import('@/pages/RequestSummaryPage/RequestSummaryPage').then((m) => ({ default: m.RequestSummaryPage })));
 const ApprovedPage = lazy(() =>
   import('@/pages/ApprovedPage').then((m) => ({ default: m.ApprovedPage })));
 const NotApprovedPage = lazy(() =>
@@ -46,6 +48,7 @@ export const routes: Route[] = [
     allow: (me, params) =>
       me.role === 'member' || homePathFor(me) === `/request-chat/${params.uuid}`,
   },
+  { path: '/request-chat/:uuid/summary', Component: RequestSummaryPage, title: 'Resumen', allow: isMember },
   { path: '/approved', Component: ApprovedPage, allow: isApplicantWithState('Approved') },
   { path: '/not-approved', Component: NotApprovedPage, allow: isApplicantWithState('Rejected') },
 ];

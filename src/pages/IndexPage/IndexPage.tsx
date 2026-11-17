@@ -63,6 +63,10 @@ export const IndexPage: FC = () => {
     navigate(`/request-chat/${item.uuid}`);
   };
 
+  const handleSelectClosed = (item: RequestChatItem) => {
+    navigate(`/request-chat/${item.uuid}/summary`);
+  };
+
   // El enlace de los avisos al grupo abre esa solicitud. Va sobre el inicio, así el botón de
   // volver lleva aquí. Quien no es miembro no llega a esta pantalla: sigue en la suya.
   useEffect(() => {
@@ -161,7 +165,7 @@ export const IndexPage: FC = () => {
             onLoadMore={() => void loadMoreClosed({ scope: 'closed', cursor: closed.data!.nextCursor! })}
           >
             {(closed.data?.items ?? []).map((item) => (
-              <ClosedRequestChatRow key={item.uuid} item={item} onSelect={handleSelect} />
+              <ClosedRequestChatRow key={item.uuid} item={item} onSelect={handleSelectClosed} />
             ))}
           </RequestChatSection>
 

@@ -124,7 +124,8 @@ const ImageGrid: FC<{ imageIds: string[] }> = ({ imageIds }) => {
     );
 };
 
-const ChatImage: FC<{ mediaId: string; single: boolean }> = ({ mediaId, single }) => {
+/** Miniatura que se abre a pantalla completa. También la usa el Resumen. */
+export const ChatImage: FC<{ mediaId: string; single: boolean }> = ({ mediaId, single }) => {
     const src = useMediaUrl(mediaId);
     const [open, setOpen] = useState(false);
     return (

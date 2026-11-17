@@ -1,5 +1,5 @@
 import { ApplicationPayload } from "@/models/application.model";
-import { RequestChat, RequestChatList, RequestChatMessagePage, RequestChatScope, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
+import { RequestChat, RequestChatEndorsements, RequestChatList, RequestChatMessagePage, RequestChatScope, RequestChatVoteResult, RequestChatVoteType } from "@/models/request-chat.model";
 import { setOwnRequestChat } from "@/state/me.slice";
 import { toggleOwnVote } from "@/helpers/votes";
 import { createApi } from "@reduxjs/toolkit/query/react";
@@ -121,7 +121,9 @@ export const requestChatApi = createApi({
             async onQueryStarted({ id, type }, { dispatch, queryFulfilled }) {
                 const patches = [
                     dispatch(requestChatApi.util.updateQueryData('getRequestChatById', id, (chat) => {
-                        Object.assign(chat, toggleOwnVote(chat, type));
+                        if (chat.votes) {
+                            Object.assign(chat, toggleOwnVote({ votes: chat.votes, userVote: chat.userVote }, type));
+                        }
                     })),
                     dispatch(requestChatApi.util.updateQueryData('listRequestChats', 'open', (list) => {
                         const item = list.items.find((i) => i.uuid === id);
@@ -148,10 +150,29 @@ export const requestChatApi = createApi({
                 }
             },
         }),
+
+        /** Avala o retira el aval. La respuesta trae todos los avales: reemplazan a los de la caché. */
+        setEndorsement: builder.mutation<RequestChatEndorsements, { id: string; endorsed: boolean }>({
+            query: ({ id, endorsed }) => ({
+                url: `/${id}/endorsement`,
+                method: endorsed ? 'PUT' : 'DELETE',
+            }),
+            async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(requestChatApi.util.updateQueryData('getRequestChatById', id, (chat) => {
+                        chat.endorsements = data.endorsements;
+                    }));
+                } catch (error) {
+                    console.error('Error updating endorsement:', error);
+                }
+            },
+        }),
     })
 })
 
 export const {
+    useSetEndorsementMutation,
     useGetRequestChatByIdQuery,
     useListRequestChatsQuery,
     useLoadMoreRequestChatsMutation,
