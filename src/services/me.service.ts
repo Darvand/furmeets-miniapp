@@ -19,6 +19,7 @@ export const meApi = createApi({
                         role: data.role,
                         requestChatId: data.requestChatId,
                         requestChatState: data.requestChatState,
+                        inviteLink: data.inviteLink,
                     }));
                 } catch (error) {
                     console.error('Error fetching me:', error);
