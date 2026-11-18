@@ -320,8 +320,9 @@ const SummaryCard: FC<{ requestChat: RequestChat; onOpen: () => void }> = ({ req
                 alignItems: 'center',
                 gap: '12px',
                 minHeight: '52px',
-                padding: '8px 12px',
-                border: 0,
+                boxSizing: 'border-box',
+                padding: '8px 8px 8px 12px',
+                border: '1px solid rgba(168, 184, 198, 0.1)',
                 borderRadius: '12px',
                 background: themeParams.secondaryBackgroundColor(),
                 color: themeParams.textColor(),
@@ -330,13 +331,25 @@ const SummaryCard: FC<{ requestChat: RequestChat; onOpen: () => void }> = ({ req
                 cursor: 'pointer',
             }}
         >
+            <span aria-hidden="true" style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: themeParams.accentTextColor(), background: 'rgba(106, 178, 242, 0.14)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="3.5" width="16" height="17" rx="2.5" />
+                    <circle cx="12" cy="9.5" r="2.5" />
+                    <path d="M8 16.5a4 4 0 0 1 8 0" />
+                </svg>
+            </span>
             <span style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
                 <span style={{ fontSize: '13px', fontWeight: 600 }}>Resumen del solicitante</span>
                 <span style={{ fontSize: '12px', lineHeight: '16px', color: themeParams.subtitleTextColor(), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {summaryLine(requestChat)}
                 </span>
             </span>
-            <span style={{ flexShrink: 0, fontSize: '12px', fontWeight: 600, color: themeParams.accentTextColor() }}>Ver</span>
+            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '2px', padding: '6px 6px 6px 10px', borderRadius: '14px', color: themeParams.accentTextColor(), background: 'rgba(82, 136, 193, 0.18)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>Ver</span>
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 6l6 6-6 6" />
+                </svg>
+            </span>
         </button>
     </div>
 );
