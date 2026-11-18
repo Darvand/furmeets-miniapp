@@ -1,4 +1,4 @@
-import { Avatar, Cell, List, IconButton, Spinner, Text, Button, Caption } from '@telegram-apps/telegram-ui';
+import { Avatar, List, IconButton, Spinner, Text, Button, Caption } from '@telegram-apps/telegram-ui';
 import { MediaAvatar } from '@/components/MediaAvatar';
 import type { FC } from 'react';
 import { Page } from '@/components/Page.tsx';
@@ -14,7 +14,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/state/store';
 import { type MessageBody, retryMessage, sendMessage as sendOptimistic } from '@/services/live-updates';
-import { initials, wrapLastText } from '@/helpers/text';
+import { initials } from '@/helpers/text';
 import { formatChatTime } from '@/helpers/date';
 
 /** Cuánto sigue la vista al fondo tras abrir el chat o enviar: cubre las imágenes que cargan. */
@@ -167,36 +167,11 @@ export const RequestChatPage: FC = () => {
                     justifyContent: 'space-between',
                 }}
             >
-                {!isMember ? <RequesterHeader /> : <Cell
-                    style={{
-                        padding: '0 4px',
-                        gap: '8px'
-                    }}
-                    before={
-                        <div
-                            style={{
-                                display: 'flex',
-                            }}
-                        >
-                            <IconButton mode='plain' onClick={handleNavigateBack}>
-                                <Icon24ChevronLeft size={24} />
-                            </IconButton>
-                            <MediaAvatar
-                                size={40}
-                                mediaId={requestChat.requester.avatarMediaId}
-                                acronym={initials(requestChat.requester.name)}
-                            />
-                        </div>
-                    }
-                    type='section'
-                    subtitle={requestChat.requester.username}
-                >
-                    {wrapLastText(20, requestChat.requester.name)}
-                </Cell>}
-                {isMember && (
-                    <SummaryCard
+                {!isMember ? <RequesterHeader /> : (
+                    <MemberHeader
                         requestChat={requestChat}
-                        onOpen={() => navigate(`/request-chat/${requestChat.uuid}/summary`, { state: { fromChat: true } })}
+                        onBack={handleNavigateBack}
+                        onOpenSummary={() => navigate(`/request-chat/${requestChat.uuid}/summary`, { state: { fromChat: true } })}
                     />
                 )}
                 <div
@@ -296,63 +271,79 @@ export const RequestChatPage: FC = () => {
     );
 };
 
-/** "Zorro ártico · 22 años · Medellín · 3 avales": lo que haya de eso. */
-function summaryLine({ form, endorsements }: RequestChat): string {
-    const count = endorsements?.length ?? 0;
-    return [
-        form?.species,
-        form && `${form.age} años`,
-        form?.city,
-        count === 1 ? '1 aval' : `${count} avales`,
-    ].filter(Boolean).join(' · ');
+/** "Zorro ártico · 22 años": lo que haya de eso; sin formulario, el usuario de Telegram. */
+function headerSubtitle({ form, requester }: RequestChat): string | undefined {
+    const line = [form?.species, form && `${form.age} años`].filter(Boolean).join(' · ');
+    return line || requester.username;
 }
 
-/** Tarjeta del chat de miembros que abre el Resumen (artboard *Main*). */
-const SummaryCard: FC<{ requestChat: RequestChat; onOpen: () => void }> = ({ requestChat, onOpen }) => (
-    <div style={{ flexShrink: 0, padding: '8px 12px', borderBottom: `1px solid ${themeParams.sectionSeparatorColor()}` }}>
-        <button
-            type="button"
-            aria-label={`Ver el resumen completo de ${requestChat.requester.name}`}
-            onClick={onOpen}
-            style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                minHeight: '52px',
-                boxSizing: 'border-box',
-                padding: '8px 8px 8px 12px',
-                border: '1px solid rgba(168, 184, 198, 0.1)',
-                borderRadius: '12px',
-                background: themeParams.secondaryBackgroundColor(),
-                color: themeParams.textColor(),
-                fontFamily: 'var(--tgui--font-family)',
-                textAlign: 'left',
-                cursor: 'pointer',
-            }}
-        >
-            <span aria-hidden="true" style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: themeParams.accentTextColor(), background: 'rgba(106, 178, 242, 0.14)' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="4" y="3.5" width="16" height="17" rx="2.5" />
-                    <circle cx="12" cy="9.5" r="2.5" />
-                    <path d="M8 16.5a4 4 0 0 1 8 0" />
-                </svg>
-            </span>
-            <span style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>Resumen del solicitante</span>
-                <span style={{ fontSize: '12px', lineHeight: '16px', color: themeParams.subtitleTextColor(), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {summaryLine(requestChat)}
+/**
+ * Cabecera del chat de miembros (artboard *Main*): volver, el solicitante y, en la misma
+ * fila, la entrada al Resumen. Una sola fila en vez de cabecera más tarjeta.
+ */
+const MemberHeader: FC<{ requestChat: RequestChat; onBack: () => void; onOpenSummary: () => void }> = ({ requestChat, onBack, onOpenSummary }) => {
+    const { requester } = requestChat;
+    const subtitle = headerSubtitle(requestChat);
+    return (
+        <div style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            height: '56px',
+            padding: '0 8px 0 4px',
+            boxSizing: 'border-box',
+            borderBottom: `1px solid ${themeParams.sectionSeparatorColor()}`,
+        }}>
+            <IconButton mode='plain' aria-label='Volver' onClick={onBack}>
+                <Icon24ChevronLeft size={24} />
+            </IconButton>
+            <button
+                type="button"
+                aria-label={`Ver el resumen completo de ${requester.name}`}
+                onClick={onOpenSummary}
+                style={{
+                    flexGrow: 1,
+                    minWidth: 0,
+                    height: '52px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: 0,
+                    border: 0,
+                    background: 'transparent',
+                    color: themeParams.textColor(),
+                    fontFamily: 'var(--tgui--font-family)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                }}
+            >
+                <MediaAvatar size={40} mediaId={requester.avatarMediaId} acronym={initials(requester.name)} />
+                <span style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                    <span style={{ fontSize: '15px', fontWeight: 600, lineHeight: '18px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {requester.name}
+                    </span>
+                    {subtitle && (
+                        <span style={{ fontSize: '12px', lineHeight: '16px', color: themeParams.subtitleTextColor(), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {subtitle}
+                        </span>
+                    )}
                 </span>
-            </span>
-            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '2px', padding: '6px 6px 6px 10px', borderRadius: '14px', color: themeParams.accentTextColor(), background: 'rgba(82, 136, 193, 0.18)' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>Ver</span>
-                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 6l6 6-6 6" />
-                </svg>
-            </span>
-        </button>
-    </div>
-);
+                <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', height: '32px', padding: '0 8px 0 10px', borderRadius: '16px', color: themeParams.accentTextColor(), background: 'rgba(82, 136, 193, 0.18)' }}>
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="4" y="3.5" width="16" height="17" rx="2.5" />
+                        <circle cx="12" cy="9.5" r="2.5" />
+                        <path d="M8 16.5a4 4 0 0 1 8 0" />
+                    </svg>
+                    <span style={{ fontSize: '12px', fontWeight: 600 }}>Resumen</span>
+                    <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 6l6 6-6 6" />
+                    </svg>
+                </span>
+            </button>
+        </div>
+    );
+};
 
 /**
  * Cabecera del chat del solicitante (artboard *Solicitante*): con quién habla y en qué
