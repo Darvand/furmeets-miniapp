@@ -43,10 +43,17 @@ const Section: FC<PropsWithChildren<{ title: string; count?: number }>> = ({ tit
     </section>
 );
 
+const Stat: FC<{ value: string; label: string; divider?: boolean }> = ({ value, label, divider }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', borderLeft: divider ? separator() : undefined }}>
+        <span style={{ fontSize: '17px', fontWeight: 600 }}>{value}</span>
+        <span style={{ fontSize: '12px', textAlign: 'center', color: themeParams.subtitleTextColor() }}>{label}</span>
+    </div>
+);
+
 /** Dato corto: etiqueta a la izquierda, valor a la derecha. El texto del solicitante puede ser largo. */
 const Row: FC<{ label: string; value?: ReactNode }> = ({ label, value }) => value ? (
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', padding: '12px 16px', borderTop: separator() }}>
-        <span style={{ flexShrink: 0, fontSize: '14px', color: themeParams.subtitleTextColor() }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderTop: separator() }}>
+        <span style={{ flexGrow: 1, flexShrink: 0, fontSize: '14px', color: themeParams.subtitleTextColor() }}>{label}</span>
         <span style={{ fontSize: '15px', textAlign: 'right', overflowWrap: 'anywhere' }}>{value}</span>
     </div>
 ) : null;
@@ -98,12 +105,21 @@ const Endorsements: FC<{ requestChat: RequestChat; viewerUuid?: string }> = ({ r
                         style={{
                             ...textButtonStyle,
                             width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
                             borderRadius: '12px',
-                            border: `1px solid ${themeParams.accentTextColor()}`,
+                            border: `1px solid ${themeParams.buttonColor()}`,
                             fontSize: '14px',
                             color: themeParams.accentTextColor(),
                         }}
                     >
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="10" cy="8" r="3.5" />
+                            <path d="M3.5 20a6.5 6.5 0 0 1 11.2-4.5" />
+                            <path d="M15.5 18l2 2 4-4.5" />
+                        </svg>
                         Lo conozco, lo avalo
                     </button>
                     <span style={{ fontSize: '11px', lineHeight: '16px', color: themeParams.subtitleTextColor() }}>
@@ -174,13 +190,12 @@ export const RequestSummaryPage: FC = () => {
                 minHeight: '100dvh',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px',
-                padding: '12px',
                 boxSizing: 'border-box',
                 fontFamily: 'var(--tgui--font-family)',
                 color: themeParams.textColor(),
                 background: themeParams.secondaryBackgroundColor(),
             }}>
+                <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
                 <header style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px 16px 16px', borderRadius: '12px', background: themeParams.sectionBackgroundColor() }}>
                     <MediaAvatar size={96} mediaId={requester.avatarMediaId} acronym={initials(requester.name)} />
                     <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 600, textAlign: 'center', overflowWrap: 'anywhere' }}>{requester.name}</h1>
@@ -189,16 +204,19 @@ export const RequestSummaryPage: FC = () => {
                         {form?.isMinor && (
                             <span style={{ ...pillStyle, color: themeParams.destructiveTextColor(), background: 'rgba(236, 57, 66, 0.14)' }}>Menor de edad</span>
                         )}
+                        {form && !form.isMinor && (
+                            <span style={{ ...pillStyle, color: themeParams.subtitleTextColor(), background: 'rgba(168, 184, 198, 0.12)' }}>+18</span>
+                        )}
                         <span style={{ ...pillStyle, color: themeParams.subtitleTextColor(), background: 'rgba(168, 184, 198, 0.12)' }}>
                             {endorsementsCount === 1 ? '1 aval' : `${endorsementsCount} avales`}
                         </span>
-                        {requestChat.createdAt && (
-                            <span style={{ ...pillStyle, color: themeParams.subtitleTextColor(), background: 'rgba(168, 184, 198, 0.12)' }}>
-                                Solicitud del {formatShortDate(requestChat.createdAt)}
-                            </span>
-                        )}
                     </div>
                 </header>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', padding: '12px', borderRadius: '12px', background: themeParams.sectionBackgroundColor() }}>
+                    <Stat value={requestChat.createdAt ? formatShortDate(requestChat.createdAt) : '—'} label="solicitud" />
+                    <Stat value={String(endorsementsCount)} label="avales" divider />
+                </div>
 
                 {legacy && !form && (
                     <div style={{ padding: '12px 16px', borderRadius: '12px', fontSize: '13px', textAlign: 'center', color: themeParams.subtitleTextColor(), background: themeParams.sectionBackgroundColor() }}>
@@ -236,22 +254,34 @@ export const RequestSummaryPage: FC = () => {
 
                 {votes && thresholds && (
                     <Section title="Votación del grupo">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px 16px' }}>
                             <VoteTallies votes={votes} thresholds={thresholds} />
-                            <VoteControls
-                                requestChatId={requestChat.uuid}
-                                requesterName={requester.name}
-                                state={requestChat.state}
-                                votes={votes}
-                                thresholds={thresholds}
-                                userVote={requestChat.userVote}
-                                isOwn={requester.uuid === user?.uuid}
-                            />
                             <button type="button" onClick={openChat} style={{ ...textButtonStyle, alignSelf: 'flex-end', color: themeParams.accentTextColor() }}>
                                 Ver el chat
                             </button>
                         </div>
                     </Section>
+                )}
+                </div>
+
+                {votes && thresholds && (
+                    <div style={{
+                        position: 'sticky',
+                        bottom: 0,
+                        padding: '12px 16px 16px',
+                        background: themeParams.sectionBackgroundColor(),
+                        borderTop: separator(),
+                    }}>
+                        <VoteControls
+                            requestChatId={requestChat.uuid}
+                            requesterName={requester.name}
+                            state={requestChat.state}
+                            votes={votes}
+                            thresholds={thresholds}
+                            userVote={requestChat.userVote}
+                            isOwn={requester.uuid === user?.uuid}
+                        />
+                    </div>
                 )}
             </div>
         </Page>
