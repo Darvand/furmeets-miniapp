@@ -20,3 +20,23 @@ input {
     background: none !important;
   }
 }
+
+/* Pantalla de carga (LoadingPage) */
+@keyframes fm-respira {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.85; }
+}
+@keyframes fm-barrido {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+@keyframes fm-entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fm-logo { animation: fm-respira 2.4s ease-in-out infinite; }
+.fm-barrido { animation: fm-barrido 1.6s ease-in-out infinite; }
+.fm-mensaje { animation: fm-entra 0.5s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .fm-logo, .fm-barrido, .fm-mensaje { animation: none; }
+}
