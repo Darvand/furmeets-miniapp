@@ -9,6 +9,7 @@ import { homePathFor } from '@/navigation/role-home';
 import { RoleRoute } from './RoleRoute';
 import { LoadingPage } from '@/pages/LoadingPage';
 import { StartupErrorPage } from '@/pages/StartupErrorPage';
+import { rememberGroupPhoto } from '@/services/group-brand';
 import { useGetMeQuery } from '@/services/me.service';
 import { useGetGroupQuery } from '@/services/group.service';
 import { AppDispatch, RootState } from '@/state/store';
@@ -32,6 +33,15 @@ export function App() {
   // Inicio y Formulario), así que se pide en paralelo y no en cadena.
   const { isError, isFetching, refetch } = useGetMeQuery();
   useGetGroupQuery();
+
+  // La pantalla de carga muestra la foto del grupo, y con la API dormida no puede pedirla:
+  // se guarda en el dispositivo para la próxima vez.
+  const groupPhotoMediaId = useSelector((state: RootState) => state.hub.group?.photoMediaId);
+  useEffect(() => {
+    if (groupPhotoMediaId) {
+      void rememberGroupPhoto(groupPhotoMediaId);
+    }
+  }, [groupPhotoMediaId]);
 
   // Un solo socket para toda la App, desde que se sabe quién es (la API decide sus salas).
   const dispatch = useDispatch<AppDispatch>();
@@ -60,7 +70,7 @@ export function App() {
   } else if (isError && !isFetching) {
     content = <StartupErrorPage onRetry={() => void refetch()} />;
   } else {
-    content = <LoadingPage />;
+    content = <LoadingPage onRetry={() => void refetch()} />;
   }
 
   return (
