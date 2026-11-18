@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { requestChatApi } from "@/services/request-chat.service";
 
 /**
  * Mensaje propio aún sin confirmar. Vive aparte de la caché de RTK Query (que solo guarda
@@ -9,6 +10,8 @@ export interface OutboxMessage {
     clientMessageId: string;
     requestChatUUID: string;
     content: string;
+    /** Ya subidas con `POST /media`; falta si el mensaje es solo texto. */
+    imageIds?: string[];
     /** ISO-8601 UTC, del momento en que se escribió. */
     sentAt: string;
     status: 'sending' | 'failed';
@@ -38,6 +41,14 @@ export const outboxSlice = createSlice({
         confirmed: (state, action: PayloadAction<string>) => {
             return state.filter((m) => m.clientMessageId !== action.payload);
         },
+    },
+    extraReducers: (builder) => {
+        // Tras reconectar, el historial puede traer un mensaje propio cuyo ack se perdió:
+        // ya está guardado, así que deja de estar pendiente y no se ve dos veces.
+        builder.addMatcher(requestChatApi.endpoints.getRequestChatById.matchFulfilled, (state, action) => {
+            const saved = new Set(action.payload.messages.flatMap((m) => (m.clientMessageId ? [m.clientMessageId] : [])));
+            return state.filter((m) => !saved.has(m.clientMessageId));
+        });
     },
 });
 

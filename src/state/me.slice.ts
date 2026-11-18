@@ -6,6 +6,7 @@ export interface MeState {
     role: Role;
     requestChatId?: string;
     requestChatState?: RequestChatState;
+    inviteLink?: string;
 }
 
 type NullableMe = MeState | null;

@@ -11,4 +11,9 @@ export interface Me {
     /** Solo para solicitantes que ya enviaron su solicitud. */
     requestChatId?: string;
     requestChatState?: RequestChatState;
+    /**
+     * Enlace de admisión (vence a los 7 días). Solo con la solicitud aprobada; puede faltar
+     * unos instantes tras el cierre, si venció o si la aprobación es anterior a T25.
+     */
+    inviteLink?: string;
 }

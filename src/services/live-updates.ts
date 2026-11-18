@@ -1,14 +1,20 @@
 import { RequestChatState } from "@/models/me.model";
 import { RequestChatMessage } from "@/models/request-chat-message.model";
-import { RequestChat, RequestChatItem, RequestChatVotesEvent } from "@/models/request-chat.model";
+import { RequestChat, RequestChatEndorsements, RequestChatItem, RequestChatVotesEvent } from "@/models/request-chat.model";
 import { setOwnRequestChat } from "@/state/me.slice";
 import { outboxActions } from "@/state/outbox.slice";
 import type { AppDispatch, RootState } from "@/state/store";
-import { REQUEST_CHAT_TAG, requestChatApi } from "./request-chat.service";
+import { REQUEST_CHAT_LIST_TAG, REQUEST_CHAT_TAG, requestChatApi } from "./request-chat.service";
 import { getSocket } from "./socket";
 
 /** Cuánto se espera el ack antes de marcar un mensaje como "no enviado". */
 const ACK_TIMEOUT_MS = 10_000;
+
+/** Lo que escribe el usuario: texto, imágenes ya subidas o ambos. */
+export interface MessageBody {
+    content: string;
+    imageIds?: string[];
+}
 
 /** Intento en curso de cada mensaje: un timeout de un intento viejo no marca al reintento. */
 const attempts = new Map<string, number>();
@@ -22,13 +28,24 @@ interface SocketException {
 const patchChat = (id: string, recipe: (chat: RequestChat) => void) =>
     requestChatApi.util.updateQueryData('getRequestChatById', id, recipe);
 
-const patchListItem = (id: string, recipe: (item: RequestChatItem) => void) =>
-    requestChatApi.util.updateQueryData('getAllRequestChats', undefined, (list) => {
+/** Solo las que siguen en curso reciben mensajes y votos: el historial no cambia. */
+const patchOpenItem = (id: string, recipe: (item: RequestChatItem) => void) =>
+    requestChatApi.util.updateQueryData('listRequestChats', 'open', (list) => {
         const item = list.items.find((i) => i.uuid === id);
         if (item) {
             recipe(item);
         }
     });
+
+/**
+ * Una solicitud que se cierra cambia de listado y mueve los totales: se piden de nuevo los
+ * dos. Pasa pocas veces, y así los totales siempre son los de la BD.
+ */
+function refreshListsIfClosed(dispatch: AppDispatch, state: string): void {
+    if (state !== 'InProgress') {
+        dispatch(requestChatApi.util.invalidateTags([REQUEST_CHAT_LIST_TAG]));
+    }
+}
 
 /**
  * Un mensaje confirmado por la API (ack o evento): pasa de la bandeja de salida a la caché
@@ -45,7 +62,7 @@ function receiveMessage(dispatch: AppDispatch, message: RequestChatMessage): voi
             chat.messages.push(message);
         }
     }));
-    dispatch(patchListItem(message.requestChatUUID, (item) => {
+    dispatch(patchOpenItem(message.requestChatUUID, (item) => {
         item.lastMessage = { at: message.sentAt, content: message.content, from: message.user };
     }));
 }
@@ -57,9 +74,9 @@ function toListItem(chat: RequestChat): RequestChatItem {
         uuid: chat.uuid,
         requester: chat.requester,
         lastMessage: last && { at: last.sentAt, content: last.content, from: last.user },
-        createdAt: last?.sentAt ?? new Date().toISOString(),
+        createdAt: chat.createdAt ?? new Date().toISOString(),
         state: chat.state,
-        votes: chat.votes,
+        votes: chat.votes ?? { approved: 0, rejected: 0 },
     };
 }
 
@@ -72,10 +89,13 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
     let connectedBefore = false;
 
     const handlers = {
-        // Tras una reconexión pudo perderse algún evento: se pide de nuevo lo que esté en uso.
+        // Tras una reconexión pudo perderse algún evento: se pide de nuevo lo que esté en uso
+        // y se reenvían los mensajes propios sin confirmar. Reenviar es seguro: con el mismo
+        // `clientMessageId`, la API devuelve el que ya guardó (T16).
         connect: () => {
             if (connectedBefore) {
                 dispatch(requestChatApi.util.invalidateTags([REQUEST_CHAT_TAG]));
+                dispatch(resendPending());
             }
             connectedBefore = true;
         },
@@ -83,25 +103,48 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
         'request-chat-votes': ({ uuid, state, votes }: RequestChatVotesEvent) => {
             // Conteos de todos; el voto propio no cambia.
             dispatch(patchChat(uuid, (chat) => Object.assign(chat, { state, votes })));
-            dispatch(patchListItem(uuid, (item) => Object.assign(item, { state, votes })));
+            // Si este voto la cerró, `request-chat-update` llega enseguida y refresca los listados.
+            dispatch(patchOpenItem(uuid, (item) => Object.assign(item, { state, votes })));
+        },
+        'request-chat-endorsements': ({ uuid, endorsements }: RequestChatEndorsements) => {
+            dispatch(patchChat(uuid, (chat) => {
+                chat.endorsements = endorsements;
+            }));
         },
         'request-chat-update': (update: RequestChat) => {
-            const { uuid, state, votes, messages } = update;
-            dispatch(patchChat(uuid, (chat) => Object.assign(chat, { state, votes, messages })));
+            const { uuid, state, votes, endorsements, messages, hasOlderMessages } = update;
+            dispatch(patchChat(uuid, (chat) => {
+                // El evento no lleva `userVote`: es para todos, y el propio se conserva.
+                Object.assign(chat, { state, votes, endorsements });
+                // Trae solo la última página: si se solapa con lo que hay, se agregan los
+                // nuevos y se conservan las páginas anteriores ya cargadas.
+                const known = new Set(chat.messages.map((m) => m.uuid));
+                if (messages.some((m) => known.has(m.uuid))) {
+                    chat.messages.push(...messages.filter((m) => !known.has(m.uuid)));
+                } else {
+                    Object.assign(chat, { messages, hasOlderMessages });
+                }
+            }));
             const last = messages[messages.length - 1] as RequestChatMessage | undefined;
-            dispatch(patchListItem(uuid, (item) => {
-                Object.assign(item, { state, votes });
+            dispatch(patchOpenItem(uuid, (item) => {
+                item.state = state;
+                if (votes) {
+                    item.votes = votes;
+                }
                 if (last) {
                     item.lastMessage = { at: last.sentAt, content: last.content, from: last.user };
                 }
             }));
+            refreshListsIfClosed(dispatch, state);
             // Si es la propia solicitud, el estado nuevo también decide el enrutamiento.
             dispatch(setOwnRequestChat({ id: uuid, state: state as RequestChatState }));
         },
         'new-request-chat': (chat: RequestChat) => {
-            dispatch(requestChatApi.util.updateQueryData('getAllRequestChats', undefined, (list) => {
+            dispatch(requestChatApi.util.updateQueryData('listRequestChats', 'open', (list) => {
                 if (!list.items.some((i) => i.uuid === chat.uuid)) {
                     list.items.unshift(toListItem(chat));
+                    list.totals.total += 1;
+                    list.totals.inProgress += 1;
                 }
             }));
         },
@@ -131,21 +174,27 @@ export function startLiveUpdates(dispatch: AppDispatch): () => void {
  * ack. Si la API lo rechaza o no responde a tiempo, queda "no enviado" y se puede reintentar
  * con el mismo `clientMessageId`.
  */
-export function sendMessage(requestChatUUID: string, content: string, clientMessageId: string = crypto.randomUUID()) {
+export function sendMessage(
+    requestChatUUID: string,
+    { content, imageIds }: MessageBody,
+    clientMessageId: string = crypto.randomUUID(),
+) {
     return (dispatch: AppDispatch) => {
         const attempt = (attempts.get(clientMessageId) ?? 0) + 1;
         attempts.set(clientMessageId, attempt);
+        const images = imageIds?.length ? imageIds : undefined;
         dispatch(outboxActions.sending({
             clientMessageId,
             requestChatUUID,
             content,
+            imageIds: images,
             sentAt: new Date().toISOString(),
         }));
         getSocket()
             .timeout(ACK_TIMEOUT_MS)
             .emit(
                 'request-chat',
-                { requestChatUUID, clientMessageId, content },
+                { requestChatUUID, clientMessageId, content, imageIds: images },
                 (error: Error | null, message?: RequestChatMessage) => {
                     if (error || !message) {
                         if (attempts.get(clientMessageId) === attempt) {
@@ -159,13 +208,29 @@ export function sendMessage(requestChatUUID: string, content: string, clientMess
     };
 }
 
-/** Reintenta un mensaje "no enviado". Mientras la API no guarde el `clientMessageId` (T16),
- * si el primer intento sí llegó a guardarse, el reintento lo duplica. */
+/**
+ * Reintenta un mensaje "no enviado" con el mismo `clientMessageId`: si el primer intento
+ * sí llegó a guardarse, la API devuelve ese mensaje en vez de duplicarlo (T16).
+ */
 export function retryMessage(clientMessageId: string) {
     return (dispatch: AppDispatch, getState: () => RootState) => {
         const message = getState().outbox.find((m) => m.clientMessageId === clientMessageId);
         if (message) {
-            dispatch(sendMessage(message.requestChatUUID, message.content, clientMessageId));
+            dispatch(sendMessage(message.requestChatUUID, message, clientMessageId));
+        }
+    };
+}
+
+/**
+ * Tras reconectar, reenvía los mensajes que seguían "enviando": su ack pudo perderse con la
+ * conexión. Los "no enviado" esperan a que el usuario los reintente.
+ */
+function resendPending() {
+    return (dispatch: AppDispatch, getState: () => RootState) => {
+        for (const message of getState().outbox) {
+            if (message.status === 'sending') {
+                dispatch(sendMessage(message.requestChatUUID, message, message.clientMessageId));
+            }
         }
     };
 }

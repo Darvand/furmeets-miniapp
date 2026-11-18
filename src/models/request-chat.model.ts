@@ -1,3 +1,4 @@
+import { ApplicationForm, LegacyApplication } from "./application.model";
 import { RequestChatMessage } from "./request-chat-message.model";
 import { User } from "./user.model";
 
@@ -32,30 +33,74 @@ export interface RequestChatVotesEvent {
     votes: RequestChatVotes;
 }
 
-export interface RequestChatList {
-    items: RequestChatItem[];
+/** Parte del listado: las que siguen en curso, o el historial de las ya cerradas. */
+export type RequestChatScope = 'open' | 'closed';
+
+export interface RequestChatThresholds {
+    approve: number;
+    reject: number;
 }
 
-export interface CreateRequestChatPayload {
-    requesterUUID: string;
-    whereYouFoundUs?: string;
-    interests?: string;
+/** Cuántas solicitudes hay por estado, en toda la BD. */
+export interface RequestChatTotals {
+    total: number;
+    inProgress: number;
+    approved: number;
+    rejected: number;
+}
+
+/** `GET /request-chats`: una página, con los totales y los umbrales vigentes. */
+export interface RequestChatList {
+    items: RequestChatItem[];
+    /** Para pedir la página siguiente; falta en la última. */
+    nextCursor?: string;
+    totals: RequestChatTotals;
+    thresholds: RequestChatThresholds;
+}
+
+/** Un aval: quién y cuándo. A diferencia de los votos, lleva el nombre de su autor. */
+export interface RequestChatEndorsement {
+    endorser: Pick<User, 'uuid' | 'name' | 'username' | 'avatarMediaId'>;
+    /** ISO-8601 UTC. */
+    at: string;
+}
+
+/** Evento `request-chat-endorsements` y respuesta de avalar o retirar el aval. */
+export interface RequestChatEndorsements {
+    uuid: string;
+    endorsements: RequestChatEndorsement[];
 }
 
 export interface RequestChat {
     uuid: string;
     requester: User;
+    /** Los últimos mensajes (hasta 50) más las páginas anteriores que se hayan pedido. */
     messages: RequestChatMessage[];
-    whereYouFoundUs?: string;
-    interests?: string;
+    /** Hay mensajes anteriores al primero de `messages` (ver `loadOlderMessages`). */
+    hasOlderMessages: boolean;
+    /** Falta en las solicitudes anteriores al formulario actual: esas traen `legacy`. */
+    form?: ApplicationForm;
+    legacy?: LegacyApplication;
     state: string;
-    votes: RequestChatVotes;
+    // Lo siguiente es de la revisión: la API solo se lo envía a los miembros (RNF-PRI-03).
+    votes?: RequestChatVotes;
+    thresholds?: RequestChatThresholds;
     userVote?: RequestChatVoteType;
+    endorsements?: RequestChatEndorsement[];
+    /** ISO-8601 UTC. */
+    createdAt?: string;
+}
+
+/** `GET /request-chats/:id/messages?before=`: mensajes anteriores, en orden. */
+export interface RequestChatMessagePage {
+    items: RequestChatMessage[];
+    /** Quedan más anteriores al primero de `items`. */
+    hasMore: boolean;
 }
 
 /**
- * Respuesta de un voto: solo estado y conteos. Si el voto cerró la solicitud, la
- * solicitud con el mensaje de cierre llega después por `request-chat-update`.
+ * Respuesta de un voto: solo estado y conteos. Si el voto cerró la solicitud, su nuevo
+ * estado llega después a todos por `request-chat-update` (sin mensaje de cierre en el chat).
  */
 export interface RequestChatVoteResult {
     uuid: string;
